@@ -834,7 +834,6 @@ button{cursor:pointer}
             <h2>添加</h2>
 
             <div class="form-group" style="margin-bottom:.9rem">
-                <label for="contentInput">正文</label>
                 <div class="rich-editor-wrap">
                     <div
                         class="rich-editor"
@@ -1207,31 +1206,9 @@ function validIso(v){
 }
 
 const ALLOWED_TAGS=new Set([
-    'B',
-    'STRONG',
-    'I',
-    'EM',
-    'U',
-    'S',
-    'STRIKE',
-    'P',
-    'DIV',
-    'BR',
-    'HR',
-    'UL',
-    'OL',
-    'LI',
-    'BLOCKQUOTE',
-    'SPAN',
-    'IMG',
-    'TABLE',
-    'THEAD',
-    'TBODY',
-    'TFOOT',
-    'TR',
-    'TH',
-    'TD',
-    'CAPTION'
+    'B','STRONG','I','EM','U','S','STRIKE','P','DIV','BR','HR',
+    'UL','OL','LI','BLOCKQUOTE','SPAN','IMG','TABLE','THEAD',
+    'TBODY','TFOOT','TR','TH','TD','CAPTION'
 ]);
 
 function normalizeHttpUrl(value){
@@ -1239,50 +1216,25 @@ function normalizeHttpUrl(value){
     return /^https?:\/\/[^\s<>()]+$/i.test(url)?url:'';
 }
 
-/*
-旧 Memo 数据中如果已经存在图片，保留兼容读取。
-当前页面不再提供新增、选择或上传图片的功能。
-*/
 function normalizeImageSrc(value){
     const src=String(value??'').trim();
 
-    if(!src||/[<>"']/u.test(src)){
-        return '';
-    }
-
-    if(/^(?:javascript|data|file):/i.test(src)){
-        return '';
-    }
-
-    if(/^\/\//.test(src)){
-        return '';
-    }
-
-    if(/^blob:/i.test(src)||/^https?:\/\//i.test(src)){
-        return src;
-    }
-
-    if(/^[a-z][a-z0-9+.-]*:/i.test(src)){
-        return '';
-    }
+    if(!src||/[<>"']/u.test(src))return '';
+    if(/^(?:javascript|data|file):/i.test(src))return '';
+    if(/^\/\//.test(src))return '';
+    if(/^blob:/i.test(src)||/^https?:\/\//i.test(src))return src;
+    if(/^[a-z][a-z0-9+.-]*:/i.test(src))return '';
 
     return src;
 }
 
 function anchorToMarkdownText(anchor){
-    const label=(anchor.textContent||'')
-        .replace(/\u00a0/g,' ')
-        .trim();
-
+    const label=(anchor.textContent||'').replace(/\u00a0/g,' ').trim();
     const url=normalizeHttpUrl(anchor.getAttribute('href'));
 
-    if(!url){
-        return label;
-    }
+    if(!url)return label;
 
-    if(
-        /^\[[^\]\r\n]+\]\(https?:\/\/[^\s<>()]+\)$/i.test(label)
-    ){
+    if(/^\[[^\]\r\n]+\]\(https?:\/\/[^\s<>()]+\)$/i.test(label)){
         return label;
     }
 
@@ -1291,15 +1243,12 @@ function anchorToMarkdownText(anchor){
 
 function replaceAnchorsWithMarkdown(root){
     [...root.querySelectorAll('a')].forEach(anchor=>{
-        anchor.replaceWith(
-            document.createTextNode(anchorToMarkdownText(anchor))
-        );
+        anchor.replaceWith(document.createTextNode(anchorToMarkdownText(anchor)));
     });
 }
 
 function sanitizeHtml(value){
     const template=document.createElement('template');
-
     template.innerHTML=String(value??'');
 
     replaceAnchorsWithMarkdown(template.content);
@@ -1311,20 +1260,13 @@ function sanitizeHtml(value){
                 continue;
             }
 
-            if(child.nodeType!==Node.ELEMENT_NODE){
-                continue;
-            }
+            if(child.nodeType!==Node.ELEMENT_NODE)continue;
 
             const tag=child.tagName.toUpperCase();
 
             if(
-                tag==='SCRIPT'
-                ||tag==='STYLE'
-                ||tag==='IFRAME'
-                ||tag==='OBJECT'
-                ||tag==='EMBED'
-                ||tag==='LINK'
-                ||tag==='META'
+                tag==='SCRIPT'||tag==='STYLE'||tag==='IFRAME'||
+                tag==='OBJECT'||tag==='EMBED'||tag==='LINK'||tag==='META'
             ){
                 child.remove();
                 continue;
@@ -1338,12 +1280,12 @@ function sanitizeHtml(value){
             }
 
             const keepIndent=
-                (tag==='P'||tag==='DIV')
-                &&child.classList.contains('first-line-indent');
+                (tag==='P'||tag==='DIV')&&
+                child.classList.contains('first-line-indent');
 
             const keepInlineNote=
-                tag==='SPAN'
-                &&child.classList.contains('inline-note');
+                tag==='SPAN'&&
+                child.classList.contains('inline-note');
 
             const imageSrc=
                 tag==='IMG'
@@ -1359,13 +1301,8 @@ function sanitizeHtml(value){
                 child.removeAttribute(attribute.name);
             }
 
-            if(keepIndent){
-                child.className='first-line-indent';
-            }
-
-            if(keepInlineNote){
-                child.className='inline-note';
-            }
+            if(keepIndent)child.className='first-line-indent';
+            if(keepInlineNote)child.className='inline-note';
 
             if(tag==='IMG'){
                 if(!imageSrc){
@@ -1389,16 +1326,10 @@ function sanitizeHtml(value){
 
 function renderMarkdownLinks(value){
     const template=document.createElement('template');
-
     template.innerHTML=sanitizeHtml(value);
 
     const regex=/\[([^\]\r\n]+)\]\((https?:\/\/[^\s<>()]+)\)/gi;
-
-    const walker=document.createTreeWalker(
-        template.content,
-        NodeFilter.SHOW_TEXT
-    );
-
+    const walker=document.createTreeWalker(template.content,NodeFilter.SHOW_TEXT);
     const nodes=[];
 
     while(walker.nextNode()){
@@ -1410,9 +1341,7 @@ function renderMarkdownLinks(value){
 
         regex.lastIndex=0;
 
-        if(!regex.test(text)){
-            continue;
-        }
+        if(!regex.test(text))continue;
 
         regex.lastIndex=0;
 
@@ -1424,9 +1353,7 @@ function renderMarkdownLinks(value){
         while((match=regex.exec(text))){
             if(match.index>last){
                 fragment.appendChild(
-                    document.createTextNode(
-                        text.slice(last,match.index)
-                    )
+                    document.createTextNode(text.slice(last,match.index))
                 );
             }
 
@@ -1460,19 +1387,8 @@ function clipboardHtmlToMarkdownText(html,fallback=''){
     template.innerHTML=String(html||'');
 
     const blockTags=new Set([
-        'P',
-        'DIV',
-        'LI',
-        'BLOCKQUOTE',
-        'UL',
-        'OL',
-        'H1',
-        'H2',
-        'H3',
-        'H4',
-        'H5',
-        'H6',
-        'PRE'
+        'P','DIV','LI','BLOCKQUOTE','UL','OL',
+        'H1','H2','H3','H4','H5','H6','PRE'
     ]);
 
     const read=node=>{
@@ -1481,8 +1397,8 @@ function clipboardHtmlToMarkdownText(html,fallback=''){
         }
 
         if(
-            node.nodeType!==Node.ELEMENT_NODE
-            &&node.nodeType!==Node.DOCUMENT_FRAGMENT_NODE
+            node.nodeType!==Node.ELEMENT_NODE &&
+            node.nodeType!==Node.DOCUMENT_FRAGMENT_NODE
         ){
             return '';
         }
@@ -1490,32 +1406,19 @@ function clipboardHtmlToMarkdownText(html,fallback=''){
         if(node.nodeType===Node.ELEMENT_NODE){
             const tag=node.tagName.toUpperCase();
 
-            if(tag==='BR'){
-                return '\n';
-            }
+            if(tag==='BR')return '\n';
+            if(tag==='A')return anchorToMarkdownText(node);
 
-            if(tag==='A'){
-                return anchorToMarkdownText(node);
-            }
+            let inner=[...node.childNodes].map(read).join('');
 
-            let inner=[...node.childNodes]
-                .map(read)
-                .join('');
-
-            if(
-                blockTags.has(tag)
-                &&inner
-                &&!inner.endsWith('\n')
-            ){
+            if(blockTags.has(tag)&&inner&&!inner.endsWith('\n')){
                 inner+='\n';
             }
 
             return inner;
         }
 
-        return [...node.childNodes]
-            .map(read)
-            .join('');
+        return [...node.childNodes].map(read).join('');
     };
 
     const result=read(template.content)
@@ -1529,25 +1432,11 @@ function clipboardHtmlToMarkdownText(html,fallback=''){
 function looksLikeLatexPlainText(text){
     const s=String(text||'');
 
-    if(!s){
-        return false;
-    }
-
-    if(/\$\$[\s\S]+?\$\$/.test(s)){
-        return true;
-    }
-
-    if(/\$(?!\$)(?:\\.|[^$\r\n])+?\$/.test(s)){
-        return true;
-    }
-
-    if(/\\\([\s\S]+?\\\)/.test(s)){
-        return true;
-    }
-
-    if(/\\\[[\s\S]+?\\\]/.test(s)){
-        return true;
-    }
+    if(!s)return false;
+    if(/\$\$[\s\S]+?\$\$/.test(s))return true;
+    if(/\$(?!\$)(?:\\.|[^$\r\n])+?\$/.test(s))return true;
+    if(/\\\([\s\S]+?\\\)/.test(s))return true;
+    if(/\\\[[\s\S]+?\\\]/.test(s))return true;
 
     return /\\(?:frac|dfrac|tfrac|sqrt|sum|prod|int|iint|iiint|oint|lim|log|ln|sin|cos|tan|arcsin|arccos|arctan|alpha|beta|gamma|delta|epsilon|varepsilon|theta|vartheta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega|mathrm|mathbf|mathit|mathbb|mathcal|text|operatorname|begin|end|left|right|cdot|times|div|pm|mp|leq|geq|neq|approx|equiv|infty|partial|nabla|overline|underline|hat|widehat|bar|vec|dot|ddot|boxed)\b/.test(s);
 }
@@ -1578,10 +1467,7 @@ let mathJaxLoadPromise=null;
 let mathRenderVersion=0;
 
 function ensureMathJax(){
-    if(
-        window.MathJax
-        &&typeof window.MathJax.typesetPromise==='function'
-    ){
+    if(window.MathJax&&typeof window.MathJax.typesetPromise==='function'){
         return Promise.resolve(window.MathJax);
     }
 
@@ -1590,30 +1476,18 @@ function ensureMathJax(){
     }
 
     const existing=
-        window.MathJax
-        &&typeof window.MathJax==='object'
+        window.MathJax&&typeof window.MathJax==='object'
             ? window.MathJax
             : {};
 
     window.MathJax={
         ...existing,
-
         tex:{
             ...(existing.tex||{}),
-
-            inlineMath:[
-                ['$','$'],
-                ['\\(','\\)']
-            ],
-
-            displayMath:[
-                ['$$','$$'],
-                ['\\[','\\]']
-            ],
-
+            inlineMath:[['$','$'],['\\(','\\)']],
+            displayMath:[['$$','$$'],['\\[','\\]']],
             processEscapes:true
         },
-
         startup:{
             ...(existing.startup||{}),
             typeset:false
@@ -1625,9 +1499,7 @@ function ensureMathJax(){
 
         const tryNext=()=>{
             if(index>=MATHJAX_SOURCES.length){
-                reject(
-                    new Error('数学公式渲染器加载失败')
-                );
+                reject(new Error('数学公式渲染器加载失败'));
                 return;
             }
 
@@ -1638,10 +1510,7 @@ function ensureMathJax(){
             script.crossOrigin='anonymous';
 
             script.onload=()=>{
-                if(
-                    window.MathJax
-                    &&typeof window.MathJax.typesetPromise==='function'
-                ){
+                if(window.MathJax&&typeof window.MathJax.typesetPromise==='function'){
                     resolve(window.MathJax);
                 }else{
                     script.remove();
@@ -1664,17 +1533,11 @@ function ensureMathJax(){
 }
 
 function clearTypesetMath(container){
-    if(
-        window.MathJax
-        &&typeof window.MathJax.typesetClear==='function'
-    ){
+    if(window.MathJax&&typeof window.MathJax.typesetClear==='function'){
         try{
             window.MathJax.typesetClear([container]);
         }catch(error){
-            console.warn(
-                '清理公式渲染状态失败',
-                error
-            );
+            console.warn('清理公式渲染状态失败',error);
         }
     }
 }
@@ -1684,16 +1547,10 @@ function queueMathTypeset(container,version){
 
     ensureMathJax()
         .then(async mathJax=>{
-            if(
-                version!==mathRenderVersion
-                ||!container.isConnected
-            ){
-                return;
-            }
+            if(version!==mathRenderVersion||!container.isConnected)return;
 
             const ready=
-                mathJax.startup
-                &&mathJax.startup.promise
+                mathJax.startup&&mathJax.startup.promise
                     ? mathJax.startup.promise
                     : Promise.resolve();
 
@@ -1701,15 +1558,9 @@ function queueMathTypeset(container,version){
                 await ready;
                 await mathJax.typesetPromise([container]);
             }catch(error){
-                console.error(
-                    '数学公式渲染失败',
-                    error
-                );
+                console.error('数学公式渲染失败',error);
 
-                if(
-                    version===mathRenderVersion
-                    &&container.isConnected
-                ){
+                if(version===mathRenderVersion&&container.isConnected){
                     container.innerHTML=rawHtml;
                 }
             }
@@ -1717,10 +1568,7 @@ function queueMathTypeset(container,version){
         .catch(error=>{
             console.error(error);
 
-            if(
-                version===mathRenderVersion
-                &&container.isConnected
-            ){
+            if(version===mathRenderVersion&&container.isConnected){
                 container.innerHTML=rawHtml;
             }
         });
@@ -1761,9 +1609,7 @@ function hasMeaningfulContent(value){
 
     div.innerHTML=html;
 
-    return Boolean(
-        div.querySelector('img,table')
-    );
+    return Boolean(div.querySelector('img,table'));
 }
 
 function getEditorHtml(editor){
@@ -1785,9 +1631,9 @@ function normalizeAttachmentFolder(value){
 
     const timestamp=Number(raw);
 
-    return Number.isSafeInteger(timestamp)
-        &&timestamp>=UNIX_FOLDER_MIN
-        &&timestamp<=UNIX_FOLDER_MAX
+    return Number.isSafeInteger(timestamp)&&
+        timestamp>=UNIX_FOLDER_MIN&&
+        timestamp<=UNIX_FOLDER_MAX
             ? timestamp
             : null;
 }
@@ -1803,9 +1649,7 @@ function mergeLegacyTitleIntoContent(title,content){
     const titleBlock=
         `<div>${esc(legacyTitle).replace(/\r?\n/g,'<br>')}</div>`;
 
-    return sanitizeHtml(
-        `${titleBlock}${body}`
-    );
+    return sanitizeHtml(`${titleBlock}${body}`);
 }
 
 function normalizeEntry(x){
@@ -1814,9 +1658,7 @@ function normalizeEntry(x){
     }
 
     const id=clean(x.id)||uid();
-
     const source=String(x.source??'').trim();
-
     const raw=String(x.content??'').trim();
 
     const baseContent=
@@ -1832,10 +1674,7 @@ function normalizeEntry(x){
 
     const createdAt=validIso(x.createdAt);
 
-    if(
-        !hasMeaningfulContent(content)
-        ||!createdAt
-    ){
+    if(!hasMeaningfulContent(content)||!createdAt){
         return null;
     }
 
@@ -1850,12 +1689,6 @@ function normalizeEntry(x){
     };
 }
 
-/*
-排序唯一依据：
-1. 发布时间 createdAt 倒序。
-2. 时间完全相同时才使用内部 ID 保证排序稳定。
-编辑正文不会修改 createdAt。
-*/
 function compareMemo(a,b){
     const byPublishedTime=
         Date.parse(b.createdAt)
@@ -1865,9 +1698,7 @@ function compareMemo(a,b){
         return byPublishedTime;
     }
 
-    return String(b.id).localeCompare(
-        String(a.id)
-    );
+    return String(b.id).localeCompare(String(a.id));
 }
 
 function normalizeState(value){
@@ -1875,8 +1706,7 @@ function normalizeState(value){
         Array.isArray(value)
             ? value
             : (
-                value
-                &&Array.isArray(value.entries)
+                value&&Array.isArray(value.entries)
                     ? value.entries
                     : []
             );
@@ -1890,14 +1720,9 @@ function normalizeState(value){
 
     for(const item of entries){
         const folder=
-            normalizeAttachmentFolder(
-                item.attachmentFolder
-            );
+            normalizeAttachmentFolder(item.attachmentFolder);
 
-        if(
-            folder!==null
-            &&!used.has(folder)
-        ){
+        if(folder!==null&&!used.has(folder)){
             item.attachmentFolder=folder;
             used.add(folder);
         }else{
@@ -1909,9 +1734,7 @@ function normalizeState(value){
 }
 
 function fingerprint(value=state){
-    return JSON.stringify(
-        normalizeState(value)
-    );
+    return JSON.stringify(normalizeState(value));
 }
 
 function formatDate(iso){
@@ -1922,32 +1745,24 @@ function formatDate(iso){
     }
 
     const y=d.getFullYear();
-
-    const m=String(
-        d.getMonth()+1
-    ).padStart(2,'0');
-
-    const day=String(
-        d.getDate()
-    ).padStart(2,'0');
+    const m=String(d.getMonth()+1).padStart(2,'0');
+    const day=String(d.getDate()).padStart(2,'0');
 
     return `${y}-${m}-${day}`;
 }
 
 function target(){
-    return config.owner
-        &&config.repo
-        &&config.file
-            ? `${config.owner}/${config.repo}/${config.file}`
-            : '';
+    return config.owner&&config.repo&&config.file
+        ? `${config.owner}/${config.repo}/${config.file}`
+        : '';
 }
 
 function adminConfigured(){
     return Boolean(
-        config.owner
-        &&config.repo
-        &&config.file
-        &&config.token
+        config.owner&&
+        config.repo&&
+        config.file&&
+        config.token
     );
 }
 
@@ -1970,9 +1785,7 @@ function openAppDb(){
 
     appDbPromise=new Promise((resolve,reject)=>{
         if(!('indexedDB' in window)){
-            reject(
-                new Error('IndexedDB unavailable')
-            );
+            reject(new Error('IndexedDB unavailable'));
             return;
         }
 
@@ -1999,8 +1812,8 @@ function openAppDb(){
 
         request.onerror=()=>{
             reject(
-                request.error
-                ||new Error('IndexedDB open failed')
+                request.error||
+                new Error('IndexedDB open failed')
             );
         };
     });
@@ -2032,19 +1845,15 @@ async function enqueueAppPut(key,value){
 
                     tx.onerror=()=>{
                         reject(
-                            tx.error
-                            ||new Error(
-                                'IndexedDB write failed'
-                            )
+                            tx.error||
+                            new Error('IndexedDB write failed')
                         );
                     };
 
                     tx.onabort=()=>{
                         reject(
-                            tx.error
-                            ||new Error(
-                                'IndexedDB write aborted'
-                            )
+                            tx.error||
+                            new Error('IndexedDB write aborted')
                         );
                     };
                 });
@@ -2074,19 +1883,15 @@ async function enqueueAppDelete(key){
 
                     tx.onerror=()=>{
                         reject(
-                            tx.error
-                            ||new Error(
-                                'IndexedDB delete failed'
-                            )
+                            tx.error||
+                            new Error('IndexedDB delete failed')
                         );
                     };
 
                     tx.onabort=()=>{
                         reject(
-                            tx.error
-                            ||new Error(
-                                'IndexedDB delete aborted'
-                            )
+                            tx.error||
+                            new Error('IndexedDB delete aborted')
                         );
                     };
                 });
@@ -2126,25 +1931,21 @@ async function readWorkingCopyOpfs(){
     }
 
     try{
-        const root=
-            await navigator.storage.getDirectory();
+        const root=await navigator.storage.getDirectory();
 
         const handle=
             await root.getFileHandle(
                 WORK_OPFS_FILE
             );
 
-        const file=
-            await handle.getFile();
+        const file=await handle.getFile();
 
         const record=
-            JSON.parse(
-                await file.text()
-            );
+            JSON.parse(await file.text());
 
-        return record
-            &&typeof record==='object'
-            &&typeof record.cacheJson==='string'
+        return record&&
+            typeof record==='object'&&
+            typeof record.cacheJson==='string'
                 ? record
                 : null;
     }catch(error){
@@ -2153,8 +1954,7 @@ async function readWorkingCopyOpfs(){
 }
 
 function queueWorkingCopyOpfsWrite(snapshot=state){
-    const normalized=
-        normalizeState(snapshot);
+    const normalized=normalizeState(snapshot);
 
     const record={
         savedAt:Date.now(),
@@ -2193,11 +1993,7 @@ function queueWorkingCopyOpfsWrite(snapshot=state){
                 return true;
             })
             .catch(error=>{
-                console.warn(
-                    'OPFS 工作副本写入失败',
-                    error
-                );
-
+                console.warn('OPFS 工作副本写入失败',error);
                 return false;
             });
 
@@ -2233,10 +2029,8 @@ async function initAppStorage(){
 
         request.onerror=()=>{
             reject(
-                request.error
-                ||new Error(
-                    'IndexedDB read failed'
-                )
+                request.error||
+                new Error('IndexedDB read failed')
             );
         };
     });
@@ -2251,36 +2045,26 @@ async function initAppStorage(){
         await readWorkingCopyOpfs();
 
     if(
-        appGet(WORK_CACHE_KEY)===null
-        &&workingCopyOpfsRecord?.cacheJson
+        appGet(WORK_CACHE_KEY)===null&&
+        workingCopyOpfsRecord?.cacheJson
     ){
         appCache.set(
             WORK_CACHE_KEY,
-            String(
-                workingCopyOpfsRecord.cacheJson
-            )
+            String(workingCopyOpfsRecord.cacheJson)
         );
 
         await enqueueAppPut(
             WORK_CACHE_KEY,
-            String(
-                workingCopyOpfsRecord.cacheJson
-            )
+            String(workingCopyOpfsRecord.cacheJson)
         );
     }
 }
 
 async function persistWorkingCopyNow(snapshot=state){
-    const normalized=
-        normalizeState(snapshot);
+    const normalized=normalizeState(snapshot);
+    const json=JSON.stringify(normalized);
 
-    const json=
-        JSON.stringify(normalized);
-
-    appCache.set(
-        WORK_CACHE_KEY,
-        json
-    );
+    appCache.set(WORK_CACHE_KEY,json);
 
     const idbPromise=
         enqueueAppPut(
@@ -2300,40 +2084,27 @@ async function persistWorkingCopyNow(snapshot=state){
         ]);
 
     if(results[0].status==='rejected'){
-        throw results[0].reason
-            ||new Error(
-                'IndexedDB 工作副本写入失败'
-            );
+        throw results[0].reason||
+            new Error('IndexedDB 工作副本写入失败');
     }
 
     return normalized;
 }
 
 function saveWorkingCache(){
-    const normalized=
-        normalizeState(state);
+    const normalized=normalizeState(state);
+    const json=JSON.stringify(normalized);
 
-    const json=
-        JSON.stringify(normalized);
-
-    appCache.set(
-        WORK_CACHE_KEY,
-        json
-    );
+    appCache.set(WORK_CACHE_KEY,json);
 
     enqueueAppPut(
         WORK_CACHE_KEY,
         json
     ).catch(error=>{
-        console.error(
-            'IndexedDB 工作副本写入失败',
-            error
-        );
+        console.error('IndexedDB 工作副本写入失败',error);
     });
 
-    queueWorkingCopyOpfsWrite(
-        normalized
-    );
+    queueWorkingCopyOpfsWrite(normalized);
 
     return true;
 }
@@ -2341,9 +2112,7 @@ function saveWorkingCache(){
 function loadWorkingCache(){
     try{
         return normalizeState(
-            JSON.parse(
-                appGet(WORK_CACHE_KEY)||'[]'
-            )
+            JSON.parse(appGet(WORK_CACHE_KEY)||'[]')
         );
     }catch(error){
         return [];
@@ -2351,25 +2120,16 @@ function loadWorkingCache(){
 }
 
 function savePublicCache(){
-    const normalized=
-        normalizeState(state);
+    const normalized=normalizeState(state);
+    const json=JSON.stringify(normalized);
 
-    const json=
-        JSON.stringify(normalized);
-
-    appCache.set(
-        PUBLIC_CACHE_KEY,
-        json
-    );
+    appCache.set(PUBLIC_CACHE_KEY,json);
 
     enqueueAppPut(
         PUBLIC_CACHE_KEY,
         json
     ).catch(error=>{
-        console.error(
-            '公开缓存写入失败',
-            error
-        );
+        console.error('公开缓存写入失败',error);
     });
 
     return true;
@@ -2378,9 +2138,7 @@ function savePublicCache(){
 function loadPublicCache(){
     try{
         return normalizeState(
-            JSON.parse(
-                appGet(PUBLIC_CACHE_KEY)||'[]'
-            )
+            JSON.parse(appGet(PUBLIC_CACHE_KEY)||'[]')
         );
     }catch(error){
         return [];
@@ -2400,9 +2158,7 @@ function show(msg,type='info'){
 }
 
 function status(kind,text){
-    statusDot.className=
-        `status-dot ${kind}`;
-
+    statusDot.className=`status-dot ${kind}`;
     statusText.textContent=text;
 }
 
@@ -2446,14 +2202,8 @@ function loadConfig(){
 
     config.owner=clean(saved.owner);
     config.repo=clean(saved.repo);
-    config.file=
-        clean(saved.file)
-        ||'memo_data.json';
-
-    config.token=
-        clean(
-            appGet(TOKEN_KEY)||''
-        );
+    config.file=clean(saved.file)||'memo_data.json';
+    config.token=clean(appGet(TOKEN_KEY)||'');
 }
 
 async function saveConfig(){
@@ -2490,10 +2240,8 @@ async function saveConfig(){
         );
 
     if(failed){
-        throw failed.reason
-            ||new Error(
-                '配置持久化失败'
-            );
+        throw failed.reason||
+            new Error('配置持久化失败');
     }
 }
 
@@ -2506,19 +2254,12 @@ function loadMeta(){
 
         meta={
             target:clean(x.target),
-
             fingerprint:
                 typeof x.fingerprint==='string'
                     ? x.fingerprint
                     : null,
-
-            sha:
-                clean(x.sha)
-                ||null,
-
-            lastSyncAt:
-                clean(x.lastSyncAt)
-                ||null
+            sha:clean(x.sha)||null,
+            lastSyncAt:clean(x.lastSyncAt)||null
         };
     }catch(error){
         meta={
@@ -2535,10 +2276,7 @@ function saveMeta(){
         META_KEY,
         JSON.stringify(meta)
     ).catch(error=>{
-        console.error(
-            '同步元数据写入失败',
-            error
-        );
+        console.error('同步元数据写入失败',error);
     });
 }
 
@@ -2564,24 +2302,16 @@ function record(snapshot,sha){
 
     if(meta.lastSyncAt){
         lastSyncTime.textContent=
-            `已同步 ${
-                new Date(
-                    meta.lastSyncAt
-                ).toLocaleString()
-            }`;
+            `已同步 ${new Date(meta.lastSyncAt).toLocaleString()}`;
     }
 }
 
 function setUnlocked(on){
     unlocked=Boolean(on);
 
-    appContent.classList.remove(
-        'hidden'
-    );
+    appContent.classList.remove('hidden');
 
-    lockedPanel.classList.add(
-        'hidden'
-    );
+    lockedPanel.classList.add('hidden');
 
     lockedPanel.setAttribute(
         'aria-hidden',
@@ -2597,8 +2327,7 @@ function setUnlocked(on){
     importBtn.disabled=!unlocked;
 
     exportBtn.disabled=
-        !publicLoaded
-        &&!unlocked;
+        !publicLoaded&&!unlocked;
 
     configBtn.textContent=
         unlocked
@@ -2620,18 +2349,16 @@ function setUnlocked(on){
    ========================= */
 
 function draftRecordValid(record){
-    return !!record
-        &&typeof record==='object'
-        &&['draft','tombstone'].includes(record.kind)
-        &&Number(record.savedAt)>0;
+    return !!record&&
+        typeof record==='object'&&
+        ['draft','tombstone'].includes(record.kind)&&
+        Number(record.savedAt)>0;
 }
 
 function openDraftDb(){
     return new Promise((resolve,reject)=>{
         if(!('indexedDB' in window)){
-            reject(
-                new Error('IndexedDB unavailable')
-            );
+            reject(new Error('IndexedDB unavailable'));
             return;
         }
 
@@ -2658,10 +2385,8 @@ function openDraftDb(){
 
         request.onerror=()=>{
             reject(
-                request.error
-                ||new Error(
-                    'IndexedDB open failed'
-                )
+                request.error||
+                new Error('IndexedDB open failed')
             );
         };
     });
@@ -2683,18 +2408,13 @@ async function draftDbRead(key){
                     .get(key);
 
             req.onsuccess=()=>{
-                resolve(
-                    req.result?.record
-                    ||null
-                );
+                resolve(req.result?.record||null);
             };
 
             req.onerror=()=>{
                 reject(
-                    req.error
-                    ||new Error(
-                        'IndexedDB read failed'
-                    )
+                    req.error||
+                    new Error('IndexedDB read failed')
                 );
             };
         });
@@ -2724,19 +2444,15 @@ async function draftDbWrite(key,record){
 
             tx.onerror=()=>{
                 reject(
-                    tx.error
-                    ||new Error(
-                        'IndexedDB write failed'
-                    )
+                    tx.error||
+                    new Error('IndexedDB write failed')
                 );
             };
 
             tx.onabort=()=>{
                 reject(
-                    tx.error
-                    ||new Error(
-                        'IndexedDB write aborted'
-                    )
+                    tx.error||
+                    new Error('IndexedDB write aborted')
                 );
             };
         });
@@ -2755,17 +2471,13 @@ async function draftOpfsRead(fileName){
             await navigator.storage.getDirectory();
 
         const handle=
-            await root.getFileHandle(
-                fileName
-            );
+            await root.getFileHandle(fileName);
 
         const file=
             await handle.getFile();
 
         const record=
-            JSON.parse(
-                await file.text()
-            );
+            JSON.parse(await file.text());
 
         return draftRecordValid(record)
             ? record
@@ -2801,11 +2513,7 @@ async function draftOpfsWrite(fileName,record){
 
         return true;
     }catch(error){
-        console.warn(
-            'OPFS 草稿写入失败',
-            error
-        );
-
+        console.warn('OPFS 草稿写入失败',error);
         return false;
     }
 }
@@ -2823,13 +2531,9 @@ async function readBestDraftRecord(key,fileName){
     let opfsRecord=null;
 
     try{
-        dbRecord=
-            await draftDbRead(key);
+        dbRecord=await draftDbRead(key);
     }catch(error){
-        console.warn(
-            'IndexedDB 草稿读取失败',
-            error
-        );
+        console.warn('IndexedDB 草稿读取失败',error);
     }
 
     opfsRecord=
@@ -2842,8 +2546,8 @@ async function readBestDraftRecord(key,fileName){
         .filter(draftRecordValid)
         .sort(
             (a,b)=>
-                Number(b.savedAt)
-                -Number(a.savedAt)
+                Number(b.savedAt)-
+                Number(a.savedAt)
         );
 
     return records[0]||null;
@@ -2870,13 +2574,11 @@ function enqueueDraftWrite(key,fileName,record){
                     results[0].status==='fulfilled';
 
                 const opfsOk=
-                    results[1].status==='fulfilled'
-                    &&results[1].value!==false;
+                    results[1].status==='fulfilled'&&
+                    results[1].value!==false;
 
                 if(!dbOk&&!opfsOk){
-                    throw new Error(
-                        '草稿本地持久化失败'
-                    );
+                    throw new Error('草稿本地持久化失败');
                 }
             });
 
@@ -2885,20 +2587,14 @@ function enqueueDraftWrite(key,fileName,record){
 
 function addDraftSnapshot(){
     return JSON.stringify({
-        content:getEditorHtml(
-            contentInput
-        )
+        content:getEditorHtml(contentInput)
     });
 }
 
 function editDraftSnapshot(){
     return JSON.stringify({
-        editingId:String(
-            editingId||''
-        ),
-        content:getEditorHtml(
-            editContent
-        )
+        editingId:String(editingId||''),
+        content:getEditorHtml(editContent)
     });
 }
 
@@ -2912,18 +2608,15 @@ function addDraftHasChanges(){
 }
 
 function editDraftHasChanges(){
-    return !!editingId
-        &&editSnapshot()
-            !==editInitialSnapshot;
+    return !!editingId&&
+        editSnapshot()!==editInitialSnapshot;
 }
 
 async function buildAddDraftRecord(){
     const draft={
         version:3,
         mode:'add',
-        content:getEditorHtml(
-            contentInput
-        ),
+        content:getEditorHtml(contentInput),
         savedAt:Date.now()
     };
 
@@ -2938,12 +2631,8 @@ async function buildEditDraftRecord(){
     const draft={
         version:3,
         mode:'edit',
-        editingId:String(
-            editingId||''
-        ),
-        content:getEditorHtml(
-            editContent
-        ),
+        editingId:String(editingId||''),
+        content:getEditorHtml(editContent),
         savedAt:Date.now()
     };
 
@@ -2970,10 +2659,7 @@ async function saveAddDraftLocal(force=false){
     const snapshot=
         addDraftSnapshot();
 
-    if(
-        !force
-        &&snapshot===addDraftLastSnapshot
-    ){
+    if(!force&&snapshot===addDraftLastSnapshot){
         return true;
     }
 
@@ -2981,8 +2667,7 @@ async function saveAddDraftLocal(force=false){
         const record=
             await buildAddDraftRecord();
 
-        addDraftLastSnapshot=
-            snapshot;
+        addDraftLastSnapshot=snapshot;
 
         await enqueueDraftWrite(
             ADD_DRAFT_KEY,
@@ -2992,19 +2677,15 @@ async function saveAddDraftLocal(force=false){
 
         return true;
     }catch(error){
-        console.error(
-            '新增草稿自动保存失败',
-            error
-        );
-
+        console.error('新增草稿自动保存失败',error);
         return false;
     }
 }
 
 async function saveEditDraftLocal(force=false){
     if(
-        editModal.classList.contains('hidden')
-        ||!editingId
+        editModal.classList.contains('hidden')||
+        !editingId
     ){
         return false;
     }
@@ -3020,10 +2701,7 @@ async function saveEditDraftLocal(force=false){
     const snapshot=
         editDraftSnapshot();
 
-    if(
-        !force
-        &&snapshot===editDraftLastSnapshot
-    ){
+    if(!force&&snapshot===editDraftLastSnapshot){
         return true;
     }
 
@@ -3031,8 +2709,7 @@ async function saveEditDraftLocal(force=false){
         const record=
             await buildEditDraftRecord();
 
-        editDraftLastSnapshot=
-            snapshot;
+        editDraftLastSnapshot=snapshot;
 
         await enqueueDraftWrite(
             EDIT_DRAFT_KEY,
@@ -3042,11 +2719,7 @@ async function saveEditDraftLocal(force=false){
 
         return true;
     }catch(error){
-        console.error(
-            '编辑草稿自动保存失败',
-            error
-        );
-
+        console.error('编辑草稿自动保存失败',error);
         return false;
     }
 }
@@ -3056,9 +2729,7 @@ function markAddDraftChanged(){
         return;
     }
 
-    clearTimeout(
-        addDraftInputTimer
-    );
+    clearTimeout(addDraftInputTimer);
 
     addDraftInputTimer=
         setTimeout(
@@ -3069,15 +2740,13 @@ function markAddDraftChanged(){
 
 function markEditDraftChanged(){
     if(
-        editModal.classList.contains('hidden')
-        ||!editingId
+        editModal.classList.contains('hidden')||
+        !editingId
     ){
         return;
     }
 
-    clearTimeout(
-        editDraftInputTimer
-    );
+    clearTimeout(editDraftInputTimer);
 
     editDraftInputTimer=
         setTimeout(
@@ -3102,10 +2771,7 @@ function stopAddDraftAutosave(){
         addDraftTimer=null;
     }
 
-    clearTimeout(
-        addDraftInputTimer
-    );
-
+    clearTimeout(addDraftInputTimer);
     addDraftInputTimer=null;
 }
 
@@ -3125,10 +2791,7 @@ function stopEditDraftAutosave(){
         editDraftTimer=null;
     }
 
-    clearTimeout(
-        editDraftInputTimer
-    );
-
+    clearTimeout(editDraftInputTimer);
     editDraftInputTimer=null;
 }
 
@@ -3143,10 +2806,7 @@ function clearAddDraft(){
             savedAt:Date.now()
         }
     ).catch(error=>{
-        console.warn(
-            '新增草稿清除标记写入失败',
-            error
-        );
+        console.warn('新增草稿清除标记写入失败',error);
     });
 }
 
@@ -3161,10 +2821,7 @@ function clearEditDraft(){
             savedAt:Date.now()
         }
     ).catch(error=>{
-        console.warn(
-            '编辑草稿清除标记写入失败',
-            error
-        );
+        console.warn('编辑草稿清除标记写入失败',error);
     });
 }
 
@@ -3181,23 +2838,16 @@ async function applyAddDraft(draft){
         addDraftSnapshot();
 
     contentInput.dispatchEvent(
-        new Event(
-            'editor-scroll-refresh'
-        )
+        new Event('editor-scroll-refresh')
     );
 }
 
 async function applyEditDraft(draft){
-    const id=
-        String(
-            draft?.editingId||''
-        );
+    const id=String(draft?.editingId||'');
 
     if(
-        !id
-        ||!state.some(
-            item=>item.id===id
-        )
+        !id||
+        !state.some(item=>item.id===id)
     ){
         return false;
     }
@@ -3216,19 +2866,14 @@ async function applyEditDraft(draft){
         editDraftSnapshot();
 
     editContent.dispatchEvent(
-        new Event(
-            'editor-scroll-refresh'
-        )
+        new Event('editor-scroll-refresh')
     );
 
     return true;
 }
 
 async function restoreMemoDraftsIfAny(){
-    if(
-        !unlocked
-        ||draftsRestoredThisSession
-    ){
+    if(!unlocked||draftsRestoredThisSession){
         return false;
     }
 
@@ -3252,29 +2897,21 @@ async function restoreMemoDraftsIfAny(){
     let restoredEdit=false;
 
     if(
-        addRecord?.kind==='draft'
-        &&addRecord.draft?.mode==='add'
+        addRecord?.kind==='draft'&&
+        addRecord.draft?.mode==='add'
     ){
-        await applyAddDraft(
-            addRecord.draft
-        );
-
+        await applyAddDraft(addRecord.draft);
         restoredAdd=true;
     }
 
     if(
-        editRecord?.kind==='draft'
-        &&editRecord.draft?.mode==='edit'
+        editRecord?.kind==='draft'&&
+        editRecord.draft?.mode==='edit'
     ){
         restoredEdit=
-            await applyEditDraft(
-                editRecord.draft
-            );
+            await applyEditDraft(editRecord.draft);
 
-        if(
-            !restoredEdit
-            &&!restoredAdd
-        ){
+        if(!restoredEdit&&!restoredAdd){
             await applyAddDraft({
                 ...editRecord.draft,
                 mode:'add'
@@ -3356,9 +2993,7 @@ async function loadPublicView(){
                 .encode(raw)
                 .length>MAX_BYTES
         ){
-            throw new Error(
-                '公开数据超过 750 KB'
-            );
+            throw new Error('公开数据超过 750 KB');
         }
 
         state=
@@ -3429,14 +3064,10 @@ async function loadPublicView(){
 
 async function githubApi(method,endpoint='',body=null){
     const owner=
-        encodeURIComponent(
-            config.owner
-        );
+        encodeURIComponent(config.owner);
 
     const repo=
-        encodeURIComponent(
-            config.repo
-        );
+        encodeURIComponent(config.repo);
 
     const suffix=
         endpoint
@@ -3447,12 +3078,9 @@ async function githubApi(method,endpoint='',body=null){
         `https://api.github.com/repos/${owner}/${repo}${suffix}`;
 
     const headers={
-        'Authorization':
-            `Bearer ${config.token}`,
-        'Accept':
-            'application/vnd.github+json',
-        'X-GitHub-Api-Version':
-            API_VERSION
+        'Authorization':`Bearer ${config.token}`,
+        'Accept':'application/vnd.github+json',
+        'X-GitHub-Api-Version':API_VERSION
     };
 
     const options={
@@ -3461,11 +3089,8 @@ async function githubApi(method,endpoint='',body=null){
     };
 
     if(body!==null){
-        headers['Content-Type']=
-            'application/json';
-
-        options.body=
-            JSON.stringify(body);
+        headers['Content-Type']='application/json';
+        options.body=JSON.stringify(body);
     }
 
     const response=
@@ -3492,8 +3117,8 @@ async function githubApi(method,endpoint='',body=null){
     if(!response.ok){
         const error=
             new Error(
-                data?.message
-                ||`HTTP ${response.status}`
+                data?.message||
+                `HTTP ${response.status}`
             );
 
         error.status=response.status;
@@ -3507,16 +3132,11 @@ async function githubApi(method,endpoint='',body=null){
 
 function utf8ToBase64(text){
     const bytes=
-        new TextEncoder()
-            .encode(text);
+        new TextEncoder().encode(text);
 
     let binary='';
 
-    for(
-        let i=0;
-        i<bytes.length;
-        i+=0x8000
-    ){
+    for(let i=0;i<bytes.length;i+=0x8000){
         binary+=
             String.fromCharCode(
                 ...bytes.subarray(
@@ -3537,17 +3157,10 @@ function base64ToUtf8(base64){
         );
 
     const bytes=
-        new Uint8Array(
-            binary.length
-        );
+        new Uint8Array(binary.length);
 
-    for(
-        let i=0;
-        i<binary.length;
-        i++
-    ){
-        bytes[i]=
-            binary.charCodeAt(i);
+    for(let i=0;i<binary.length;i++){
+        bytes[i]=binary.charCodeAt(i);
     }
 
     return new TextDecoder('utf-8')
@@ -3567,30 +3180,24 @@ async function readRemote(){
             );
 
         if(
-            !data
-            ||data.type!=='file'
-            ||typeof data.content!=='string'
-            ||!data.sha
+            !data||
+            data.type!=='file'||
+            typeof data.content!=='string'||
+            !data.sha
         ){
-            throw new Error(
-                '云端数据文件格式异常'
-            );
+            throw new Error('云端数据文件格式异常');
         }
 
         if(
-            Number.isFinite(data.size)
-            &&data.size>MAX_BYTES
+            Number.isFinite(data.size)&&
+            data.size>MAX_BYTES
         ){
-            throw new Error(
-                '云端数据超过 750 KB'
-            );
+            throw new Error('云端数据超过 750 KB');
         }
 
         const parsed=
             JSON.parse(
-                base64ToUtf8(
-                    data.content
-                )
+                base64ToUtf8(data.content)
             );
 
         return{
@@ -3630,9 +3237,7 @@ async function writeRemote(snapshot,sha){
             .encode(raw)
             .length>MAX_BYTES
     ){
-        throw new Error(
-            '数据超过 750 KB'
-        );
+        throw new Error('数据超过 750 KB');
     }
 
     const body={
@@ -3652,8 +3257,7 @@ async function writeRemote(snapshot,sha){
             body
         );
 
-    return result?.content?.sha
-        ||null;
+    return result?.content?.sha||null;
 }
 
 /* =========================
@@ -3662,8 +3266,7 @@ async function writeRemote(snapshot,sha){
 
 function attachmentBaseDir(){
     const file=
-        clean(config.file)
-        ||PUBLIC_DATA_FILE;
+        clean(config.file)||PUBLIC_DATA_FILE;
 
     const normalized=
         file
@@ -3702,20 +3305,17 @@ async function deleteRepoTree(repoPath){
 
     for(const item of items){
         if(item?.type==='dir'){
-            await deleteRepoTree(
-                item.path
-            );
+            await deleteRepoTree(item.path);
         }else if(
-            item?.type==='file'
-            &&item.sha
-            &&item.path
+            item?.type==='file'&&
+            item.sha&&
+            item.path
         ){
             await githubApi(
                 'DELETE',
                 `contents/${pathEncode(item.path)}`,
                 {
-                    message:
-                        `删除 Memo 旧附件 ${item.path}`,
+                    message:`删除 Memo 旧附件 ${item.path}`,
                     sha:item.sha
                 }
             );
@@ -3746,15 +3346,12 @@ async function deleteAttachmentFolder(folder){
    ========================= */
 
 function render(){
-    state=
-        normalizeState(state);
+    state=normalizeState(state);
 
     countDisplay.textContent=
         String(state.length);
 
-    clearTypesetMath(
-        memoList
-    );
+    clearTypesetMath(memoList);
 
     const currentMathVersion=
         ++mathRenderVersion;
@@ -3785,25 +3382,18 @@ function render(){
                 }
 
                 <div class="memo-content">${
-                    renderMarkdownLinks(
-                        item.content
-                    )
+                    renderMarkdownLinks(item.content)
                 }</div>
 
                 <div class="memo-footer">
                     <div class="publish-date">
-                        发布日期 ${esc(
-                            formatDate(
-                                item.createdAt
-                            )
-                        )}
+                        发布日期 ${esc(formatDate(item.createdAt))}
                     </div>
                 </div>
             </article>
         `).join('');
 
     publicLoaded=true;
-
     exportBtn.disabled=false;
 
     saveCache();
@@ -3822,10 +3412,7 @@ async function login(showResult=true){
     if(!adminConfigured()){
         setUnlocked(false);
 
-        if(
-            publicLoaded
-            ||state.length
-        ){
+        if(publicLoaded||state.length){
             render();
         }
 
@@ -3869,9 +3456,7 @@ async function login(showResult=true){
             await readRemote();
 
         const remoteFp=
-            fingerprint(
-                remote.state
-            );
+            fingerprint(remote.state);
 
         const cache=
             loadCache();
@@ -3883,10 +3468,10 @@ async function login(showResult=true){
             fingerprint(cache);
 
         const cacheUnsynced=
-            sameTarget
-            &&meta.fingerprint!==null
-            &&cacheFp!==meta.fingerprint
-            &&cacheFp!==remoteFp;
+            sameTarget&&
+            meta.fingerprint!==null&&
+            cacheFp!==meta.fingerprint&&
+            cacheFp!==remoteFp;
 
         if(cacheUnsynced){
             state=cache;
@@ -3896,8 +3481,8 @@ async function login(showResult=true){
             render();
 
             if(
-                remote.exists
-                &&remoteFp!==meta.fingerprint
+                remote.exists&&
+                remoteFp!==meta.fingerprint
             ){
                 status(
                     'offline',
@@ -3969,10 +3554,7 @@ async function login(showResult=true){
 
         setUnlocked(false);
 
-        if(
-            publicLoaded
-            ||state.length
-        ){
+        if(publicLoaded||state.length){
             render();
         }
 
@@ -4006,10 +3588,7 @@ async function login(showResult=true){
    ========================= */
 
 async function sync(showResult=true,interactive=showResult){
-    if(
-        !unlocked
-        ||!adminConfigured()
-    ){
+    if(!unlocked||!adminConfigured()){
         show(
             '请先使用 Token 登录',
             'error'
@@ -4038,9 +3617,7 @@ async function sync(showResult=true,interactive=showResult){
             normalizeState(state);
 
         const localFp=
-            fingerprint(
-                localSnapshot
-            );
+            fingerprint(localSnapshot);
 
         const baseline=
             meta.target===target()
@@ -4051,10 +3628,7 @@ async function sync(showResult=true,interactive=showResult){
             await readRemote();
 
         if(!remote.exists){
-            if(
-                baseline!==null
-                &&interactive
-            ){
+            if(baseline!==null&&interactive){
                 const recreate=
                     confirm(
                         '云端数据文件已不存在。\n\n'
@@ -4070,10 +3644,7 @@ async function sync(showResult=true,interactive=showResult){
 
                     return false;
                 }
-            }else if(
-                baseline!==null
-                &&!interactive
-            ){
+            }else if(baseline!==null&&!interactive){
                 status(
                     'offline',
                     '云端文件已删除'
@@ -4114,9 +3685,7 @@ async function sync(showResult=true,interactive=showResult){
         }
 
         const remoteFp=
-            fingerprint(
-                remote.state
-            );
+            fingerprint(remote.state);
 
         if(localFp===remoteFp){
             record(
@@ -4140,17 +3709,17 @@ async function sync(showResult=true,interactive=showResult){
         }
 
         const localChanged=
-            baseline===null
-            ||localFp!==baseline;
+            baseline===null||
+            localFp!==baseline;
 
         const remoteChanged=
-            baseline===null
-            ||remoteFp!==baseline;
+            baseline===null||
+            remoteFp!==baseline;
 
         if(
-            baseline!==null
-            &&localChanged
-            &&!remoteChanged
+            baseline!==null&&
+            localChanged&&
+            !remoteChanged
         ){
             const sha=
                 await writeRemote(
@@ -4179,9 +3748,9 @@ async function sync(showResult=true,interactive=showResult){
         }
 
         if(
-            baseline!==null
-            &&!localChanged
-            &&remoteChanged
+            baseline!==null&&
+            !localChanged&&
+            remoteChanged
         ){
             state=remote.state;
 
@@ -4346,29 +3915,21 @@ function markLocalChange(){
 
 /* =========================
    编辑器基础处理
-   无可见格式工具栏
    ========================= */
 
 function selectionInside(editor){
     const sel=
         window.getSelection();
 
-    if(
-        !sel
-        ||sel.rangeCount===0
-    ){
+    if(!sel||sel.rangeCount===0){
         return false;
     }
 
     const range=
         sel.getRangeAt(0);
 
-    return editor.contains(
-        range.startContainer
-    )
-    &&editor.contains(
-        range.endContainer
-    );
+    return editor.contains(range.startContainer)&&
+        editor.contains(range.endContainer);
 }
 
 function currentBlock(editor){
@@ -4376,28 +3937,16 @@ function currentBlock(editor){
         window.getSelection();
 
     let node=
-        sel?.anchorNode
-        ||null;
+        sel?.anchorNode||null;
 
-    if(
-        node
-        &&node.nodeType===Node.TEXT_NODE
-    ){
+    if(node&&node.nodeType===Node.TEXT_NODE){
         node=node.parentElement;
     }
 
-    while(
-        node
-        &&node!==editor
-    ){
+    while(node&&node!==editor){
         if(
-            node.nodeType===Node.ELEMENT_NODE
-            &&[
-                'P',
-                'DIV',
-                'LI',
-                'BLOCKQUOTE'
-            ].includes(node.tagName)
+            node.nodeType===Node.ELEMENT_NODE&&
+            ['P','DIV','LI','BLOCKQUOTE'].includes(node.tagName)
         ){
             return node;
         }
@@ -4432,10 +3981,7 @@ function rememberEditorRange(editor){
     const sel=
         window.getSelection();
 
-    if(
-        !sel
-        ||sel.rangeCount===0
-    ){
+    if(!sel||sel.rangeCount===0){
         return false;
     }
 
@@ -4443,12 +3989,8 @@ function rememberEditorRange(editor){
         sel.getRangeAt(0);
 
     if(
-        !editor.contains(
-            range.startContainer
-        )
-        ||!editor.contains(
-            range.endContainer
-        )
+        !editor.contains(range.startContainer)||
+        !editor.contains(range.endContainer)
     ){
         return false;
     }
@@ -4475,16 +4017,10 @@ function restoreEditorRange(editor){
 
     try{
         if(
-            !editor.contains(
-                range.startContainer
-            )
-            ||!editor.contains(
-                range.endContainer
-            )
+            !editor.contains(range.startContainer)||
+            !editor.contains(range.endContainer)
         ){
-            throw new Error(
-                'stale range'
-            );
+            throw new Error('stale range');
         }
 
         const sel=
@@ -4505,35 +4041,22 @@ function createEditorParagraph(inheritIndent=false){
     const block=
         document.createElement('div');
 
-    block.classList.add(
-        'editor-paragraph'
-    );
+    block.classList.add('editor-paragraph');
 
     if(inheritIndent){
-        block.classList.add(
-            'first-line-indent'
-        );
+        block.classList.add('first-line-indent');
     }
 
     return block;
 }
 
 function tagNestedEditorParagraphs(container){
-    for(
-        const block
-        of container.querySelectorAll('p,div')
-    ){
-        if(
-            block.querySelector(
-                ':scope > p,:scope > div'
-            )
-        ){
+    for(const block of container.querySelectorAll('p,div')){
+        if(block.querySelector(':scope > p,:scope > div')){
             continue;
         }
 
-        block.classList.add(
-            'editor-paragraph'
-        );
+        block.classList.add('editor-paragraph');
     }
 }
 
@@ -4555,20 +4078,15 @@ function normalizeEditorParagraphModel(editor){
     const ensureParagraph=(inheritIndent=false)=>{
         if(!paragraph){
             paragraph=
-                createEditorParagraph(
-                    inheritIndent
-                );
+                createEditorParagraph(inheritIndent);
 
             paragraphInheritedIndent=
                 inheritIndent;
         }else if(
-            inheritIndent
-            &&!paragraphInheritedIndent
+            inheritIndent&&
+            !paragraphInheritedIndent
         ){
-            paragraph.classList.add(
-                'first-line-indent'
-            );
-
+            paragraph.classList.add('first-line-indent');
             paragraphInheritedIndent=true;
         }
 
@@ -4576,12 +4094,8 @@ function normalizeEditorParagraphModel(editor){
     };
 
     const flush=(forceBlank=false)=>{
-        if(
-            !paragraph
-            &&forceBlank
-        ){
-            paragraph=
-                createEditorParagraph(false);
+        if(!paragraph&&forceBlank){
+            paragraph=createEditorParagraph(false);
         }
 
         if(!paragraph){
@@ -4605,43 +4119,32 @@ function normalizeEditorParagraphModel(editor){
         inheritIndent=false
     )=>{
         const value=
-            String(
-                node.nodeValue??''
-            ).replace(/\r\n?/g,'\n');
+            String(node.nodeValue??'')
+                .replace(/\r\n?/g,'\n');
 
         if(!value.includes('\n')){
-            ensureParagraph(
-                inheritIndent
-            ).appendChild(node);
+            ensureParagraph(inheritIndent)
+                .appendChild(node);
 
             return;
         }
 
-        const parts=
-            value.split('\n');
+        const parts=value.split('\n');
 
         node.remove();
 
-        parts.forEach(
-            (part,index)=>{
-                if(part){
-                    ensureParagraph(
-                        inheritIndent
-                    ).appendChild(
-                        document.createTextNode(
-                            part
-                        )
+        parts.forEach((part,index)=>{
+            if(part){
+                ensureParagraph(inheritIndent)
+                    .appendChild(
+                        document.createTextNode(part)
                     );
-                }
-
-                if(
-                    index
-                    <parts.length-1
-                ){
-                    flush(true);
-                }
             }
-        );
+
+            if(index<parts.length-1){
+                flush(true);
+            }
+        });
     };
 
     const processNodes=(
@@ -4649,28 +4152,20 @@ function normalizeEditorParagraphModel(editor){
         inheritIndent=false
     )=>{
         for(const node of nodes){
-            if(
-                node.nodeType
-                ===Node.TEXT_NODE
-            ){
+            if(node.nodeType===Node.TEXT_NODE){
                 appendDirectText(
                     node,
                     inheritIndent
                 );
-
                 continue;
             }
 
-            if(
-                node.nodeType
-                !==Node.ELEMENT_NODE
-            ){
+            if(node.nodeType!==Node.ELEMENT_NODE){
                 node.remove();
                 continue;
             }
 
-            const tag=
-                node.tagName.toUpperCase();
+            const tag=node.tagName.toUpperCase();
 
             if(tag==='BR'){
                 node.remove();
@@ -4683,23 +4178,17 @@ function normalizeEditorParagraphModel(editor){
 
                 const block=
                     createEditorParagraph(
-                        inheritIndent
-                        ||node.classList.contains(
-                            'first-line-indent'
-                        )
+                        inheritIndent||
+                        node.classList.contains('first-line-indent')
                     );
 
                 while(node.firstChild){
-                    block.appendChild(
-                        node.firstChild
-                    );
+                    block.appendChild(node.firstChild);
                 }
 
                 if(!block.childNodes.length){
                     block.appendChild(
-                        document.createElement(
-                            'br'
-                        )
+                        document.createElement('br')
                     );
                 }
 
@@ -4715,8 +4204,8 @@ function normalizeEditorParagraphModel(editor){
                     [...node.children]
                         .some(
                             child=>
-                                child.tagName==='P'
-                                ||child.tagName==='DIV'
+                                child.tagName==='P'||
+                                child.tagName==='DIV'
                         );
 
                 if(nestedParagraphs){
@@ -4727,10 +4216,8 @@ function normalizeEditorParagraphModel(editor){
                     ];
 
                     const nextIndent=
-                        inheritIndent
-                        ||node.classList.contains(
-                            'first-line-indent'
-                        );
+                        inheritIndent||
+                        node.classList.contains('first-line-indent');
 
                     node.remove();
 
@@ -4741,21 +4228,15 @@ function normalizeEditorParagraphModel(editor){
                 }else{
                     flush();
 
-                    node.classList.add(
-                        'editor-paragraph'
-                    );
+                    node.classList.add('editor-paragraph');
 
                     if(inheritIndent){
-                        node.classList.add(
-                            'first-line-indent'
-                        );
+                        node.classList.add('first-line-indent');
                     }
 
                     if(!node.childNodes.length){
                         node.appendChild(
-                            document.createElement(
-                                'br'
-                            )
+                            document.createElement('br')
                         );
                     }
 
@@ -4766,28 +4247,19 @@ function normalizeEditorParagraphModel(editor){
             }
 
             if(
-                [
-                    'UL',
-                    'OL',
-                    'BLOCKQUOTE',
-                    'TABLE',
-                    'HR'
-                ].includes(tag)
+                ['UL','OL','BLOCKQUOTE','TABLE','HR'].includes(tag)
             ){
                 flush();
 
-                tagNestedEditorParagraphs(
-                    node
-                );
+                tagNestedEditorParagraphs(node);
 
                 output.appendChild(node);
 
                 continue;
             }
 
-            ensureParagraph(
-                inheritIndent
-            ).appendChild(node);
+            ensureParagraph(inheritIndent)
+                .appendChild(node);
         }
     };
 
@@ -4798,17 +4270,14 @@ function normalizeEditorParagraphModel(editor){
 
     flush();
 
-    editor.replaceChildren(
-        output
-    );
+    editor.replaceChildren(output);
 }
 
 function createSelectionMarker(kind){
     const marker=
         document.createElement('span');
 
-    marker.dataset.editorSelectionMarker=
-        kind;
+    marker.dataset.editorSelectionMarker=kind;
 
     marker.setAttribute(
         'aria-hidden',
@@ -4816,49 +4285,40 @@ function createSelectionMarker(kind){
     );
 
     marker.style.cssText=
-        'display:inline-block;'
-        +'width:0;'
-        +'height:0;'
-        +'overflow:hidden;'
-        +'line-height:0;'
-        +'pointer-events:none;';
+        'display:inline-block;'+
+        'width:0;'+
+        'height:0;'+
+        'overflow:hidden;'+
+        'line-height:0;'+
+        'pointer-events:none;';
 
     return marker;
 }
 
 function insertSelectionMarkers(editor,range){
-    const collapsed=
-        range.collapsed;
+    const collapsed=range.collapsed;
 
     const startMarker=
-        createSelectionMarker(
-            'start'
-        );
+        createSelectionMarker('start');
 
     const endMarker=
         collapsed
             ? null
-            : createSelectionMarker(
-                'end'
-            );
+            : createSelectionMarker('end');
 
     if(endMarker){
         const endRange=
             range.cloneRange();
 
         endRange.collapse(false);
-        endRange.insertNode(
-            endMarker
-        );
+        endRange.insertNode(endMarker);
     }
 
     const startRange=
         range.cloneRange();
 
     startRange.collapse(true);
-    startRange.insertNode(
-        startMarker
-    );
+    startRange.insertNode(startMarker);
 
     return{
         startMarker,
@@ -4877,10 +4337,7 @@ function restoreSelectionFromMarkers(editor,bookmark){
     const sel=
         window.getSelection();
 
-    if(
-        !sel
-        ||!startMarker.isConnected
-    ){
+    if(!sel||!startMarker.isConnected){
         return false;
     }
 
@@ -4888,19 +4345,11 @@ function restoreSelectionFromMarkers(editor,bookmark){
         document.createRange();
 
     if(collapsed){
-        range.setStartBefore(
-            startMarker
-        );
-
+        range.setStartBefore(startMarker);
         range.collapse(true);
     }else if(endMarker?.isConnected){
-        range.setStartAfter(
-            startMarker
-        );
-
-        range.setEndBefore(
-            endMarker
-        );
+        range.setStartAfter(startMarker);
+        range.setEndBefore(endMarker);
     }else{
         return false;
     }
@@ -4921,9 +4370,9 @@ function normalizeEditorParagraphModelPreservingSelection(editor){
         window.getSelection();
 
     if(
-        !sel
-        ||sel.rangeCount===0
-        ||!selectionInside(editor)
+        !sel||
+        sel.rangeCount===0||
+        !selectionInside(editor)
     ){
         normalizeEditorParagraphModel(editor);
         return false;
@@ -4932,13 +4381,10 @@ function normalizeEditorParagraphModelPreservingSelection(editor){
     const bookmark=
         insertSelectionMarkers(
             editor,
-            sel.getRangeAt(0)
-                .cloneRange()
+            sel.getRangeAt(0).cloneRange()
         );
 
-    normalizeEditorParagraphModel(
-        editor
-    );
+    normalizeEditorParagraphModel(editor);
 
     return restoreSelectionFromMarkers(
         editor,
@@ -4946,25 +4392,16 @@ function normalizeEditorParagraphModelPreservingSelection(editor){
     );
 }
 
-/*
-这些格式处理函数继续保留，因此已有格式数据和公式逻辑不会失效。
-页面不再显示可见格式按钮。
-*/
 function editorParagraphForNode(editor,node){
     let current=
         node?.nodeType===Node.ELEMENT_NODE
             ? node
             : node?.parentElement;
 
-    while(
-        current
-        &&current!==editor
-    ){
+    while(current&&current!==editor){
         if(
-            current.nodeType===Node.ELEMENT_NODE
-            &&current.classList.contains(
-                'editor-paragraph'
-            )
+            current.nodeType===Node.ELEMENT_NODE&&
+            current.classList.contains('editor-paragraph')
         ){
             return current;
         }
@@ -4983,9 +4420,7 @@ function paragraphsTouchedByBookmark(editor,bookmark){
     }=bookmark;
 
     const paragraphs=[
-        ...editor.querySelectorAll(
-            '.editor-paragraph'
-        )
+        ...editor.querySelectorAll('.editor-paragraph')
     ];
 
     if(collapsed){
@@ -4995,9 +4430,7 @@ function paragraphsTouchedByBookmark(editor,bookmark){
                 startMarker
             );
 
-        return block
-            ? [block]
-            : [];
+        return block?[block]:[];
     }
 
     if(!endMarker?.isConnected){
@@ -5016,41 +4449,25 @@ function paragraphsTouchedByBookmark(editor,bookmark){
             endMarker
         );
 
-    if(
-        !startBlock
-        ||!endBlock
-    ){
+    if(!startBlock||!endBlock){
         return [];
     }
 
     const startIndex=
-        paragraphs.indexOf(
-            startBlock
-        );
+        paragraphs.indexOf(startBlock);
 
     const endIndex=
-        paragraphs.indexOf(
-            endBlock
-        );
+        paragraphs.indexOf(endBlock);
 
-    if(
-        startIndex<0
-        ||endIndex<0
-    ){
+    if(startIndex<0||endIndex<0){
         return [];
     }
 
     const from=
-        Math.min(
-            startIndex,
-            endIndex
-        );
+        Math.min(startIndex,endIndex);
 
     const to=
-        Math.max(
-            startIndex,
-            endIndex
-        );
+        Math.max(startIndex,endIndex);
 
     return paragraphs.slice(
         from,
@@ -5065,9 +4482,9 @@ function toggleFirstLineIndent(editor){
         window.getSelection();
 
     if(
-        !sel
-        ||sel.rangeCount===0
-        ||!selectionInside(editor)
+        !sel||
+        sel.rangeCount===0||
+        !selectionInside(editor)
     ){
         show(
             '请将光标放在正文段落中，或选择一个/多个自然段',
@@ -5080,13 +4497,10 @@ function toggleFirstLineIndent(editor){
     const bookmark=
         insertSelectionMarkers(
             editor,
-            sel.getRangeAt(0)
-                .cloneRange()
+            sel.getRangeAt(0).cloneRange()
         );
 
-    normalizeEditorParagraphModel(
-        editor
-    );
+    normalizeEditorParagraphModel(editor);
 
     const blocks=
         paragraphsTouchedByBookmark(
@@ -5111,9 +4525,7 @@ function toggleFirstLineIndent(editor){
     const shouldIndent=
         blocks.some(
             block=>
-                !block.classList.contains(
-                    'first-line-indent'
-                )
+                !block.classList.contains('first-line-indent')
         );
 
     for(const block of blocks){
@@ -5189,12 +4601,12 @@ function insertTable(editor){
         );
 
     if(
-        !Number.isInteger(rows)
-        ||rows<1
-        ||rows>20
-        ||!Number.isInteger(cols)
-        ||cols<1
-        ||cols>12
+        !Number.isInteger(rows)||
+        rows<1||
+        rows>20||
+        !Number.isInteger(cols)||
+        cols<1||
+        cols>12
     ){
         show(
             '请输入有效的表格行列数',
@@ -5206,21 +4618,12 @@ function insertTable(editor){
 
     restoreEditorRange(editor);
 
-    let html=
-        '<table><tbody>';
+    let html='<table><tbody>';
 
-    for(
-        let r=0;
-        r<rows;
-        r++
-    ){
+    for(let r=0;r<rows;r++){
         html+='<tr>';
 
-        for(
-            let c=0;
-            c<cols;
-            c++
-        ){
+        for(let c=0;c<cols;c++){
             html+=
                 r===0
                     ? '<th>&nbsp;</th>'
@@ -5230,8 +4633,7 @@ function insertTable(editor){
         html+='</tr>';
     }
 
-    html+=
-        '</tbody></table><p><br></p>';
+    html+='</tbody></table><p><br></p>';
 
     document.execCommand(
         'insertHTML',
@@ -5259,23 +4661,15 @@ function insertMathMarkup(editor,display=false){
         const candidate=
             sel.getRangeAt(0);
 
-        if(
-            editor.contains(
-                candidate.commonAncestorContainer
-            )
-        ){
+        if(editor.contains(candidate.commonAncestorContainer)){
             range=candidate;
         }
     }
 
     if(!range){
-        range=
-            document.createRange();
+        range=document.createRange();
 
-        range.selectNodeContents(
-            editor
-        );
-
+        range.selectNodeContents(editor);
         range.collapse(false);
     }
 
@@ -5289,9 +4683,9 @@ function insertMathMarkup(editor,display=false){
 
     const node=
         document.createTextNode(
+            mark+
+            selected+
             mark
-            +selected
-            +mark
         );
 
     range.deleteContents();
@@ -5328,10 +4722,7 @@ function applyInlineNote(editor){
     const sel=
         window.getSelection();
 
-    if(
-        !sel
-        ||sel.rangeCount===0
-    ){
+    if(!sel||sel.rangeCount===0){
         return;
     }
 
@@ -5339,10 +4730,8 @@ function applyInlineNote(editor){
         sel.getRangeAt(0);
 
     if(
-        range.collapsed
-        ||!editor.contains(
-            range.commonAncestorContainer
-        )
+        range.collapsed||
+        !editor.contains(range.commonAncestorContainer)
     ){
         show(
             '请先选择要设为备注的正文文字',
@@ -5365,8 +4754,8 @@ function applyInlineNote(editor){
             walker.currentNode;
 
         if(
-            !range.intersectsNode(node)
-            ||!node.nodeValue
+            !range.intersectsNode(node)||
+            !node.nodeValue
         ){
             continue;
         }
@@ -5374,15 +4763,11 @@ function applyInlineNote(editor){
         let start=0;
         let end=node.nodeValue.length;
 
-        if(
-            node===range.startContainer
-        ){
+        if(node===range.startContainer){
             start=range.startOffset;
         }
 
-        if(
-            node===range.endContainer
-        ){
+        if(node===range.endContainer){
             end=range.endOffset;
         }
 
@@ -5409,38 +4794,21 @@ function applyInlineNote(editor){
     for(const segment of segments){
         let node=segment.node;
 
-        if(
-            segment.end
-            <node.nodeValue.length
-        ){
-            node.splitText(
-                segment.end
-            );
+        if(segment.end<node.nodeValue.length){
+            node.splitText(segment.end);
         }
 
         if(segment.start>0){
-            node=
-                node.splitText(
-                    segment.start
-                );
+            node=node.splitText(segment.start);
         }
 
-        if(
-            node.parentElement
-                ?.classList
-                .contains('inline-note')
-        ){
-            wrapped.push(
-                node.parentElement
-            );
-
+        if(node.parentElement?.classList.contains('inline-note')){
+            wrapped.push(node.parentElement);
             continue;
         }
 
         const span=
-            document.createElement(
-                'span'
-            );
+            document.createElement('span');
 
         span.className='inline-note';
 
@@ -5454,15 +4822,8 @@ function applyInlineNote(editor){
         const nextRange=
             document.createRange();
 
-        nextRange.setStartBefore(
-            wrapped[0]
-        );
-
-        nextRange.setEndAfter(
-            wrapped[
-                wrapped.length-1
-            ]
-        );
+        nextRange.setStartBefore(wrapped[0]);
+        nextRange.setEndAfter(wrapped[wrapped.length-1]);
 
         sel.removeAllRanges();
         sel.addRange(nextRange);
@@ -5532,29 +4893,20 @@ function runEditorAction(editor,button){
 
 function setupEditorScrollIndicator(editor){
     const wrap=
-        editor.closest(
-            '.rich-editor-wrap'
-        );
+        editor.closest('.rich-editor-wrap');
 
     if(!wrap){
         return;
     }
 
     const track=
-        document.createElement(
-            'div'
-        );
+        document.createElement('div');
 
     const thumb=
-        document.createElement(
-            'div'
-        );
+        document.createElement('div');
 
-    track.className=
-        'rich-editor-scrollbar';
-
-    thumb.className=
-        'rich-editor-scrollbar-thumb';
+    track.className='rich-editor-scrollbar';
+    thumb.className='rich-editor-scrollbar-thumb';
 
     track.setAttribute(
         'aria-hidden',
@@ -5562,7 +4914,6 @@ function setupEditorScrollIndicator(editor){
     );
 
     track.appendChild(thumb);
-
     wrap.appendChild(track);
 
     let raf=0;
@@ -5586,9 +4937,9 @@ function setupEditorScrollIndicator(editor){
                 34,
                 Math.min(
                     trackHeight,
-                    trackHeight
-                    *clientHeight
-                    /Math.max(
+                    trackHeight*
+                    clientHeight/
+                    Math.max(
                         scrollHeight,
                         1
                     )
@@ -5623,9 +4974,8 @@ function setupEditorScrollIndicator(editor){
         const m=metrics();
 
         const overflow=
-            m.clientHeight>0
-            &&m.scrollHeight
-                >m.clientHeight+2;
+            m.clientHeight>0&&
+            m.scrollHeight>m.clientHeight+2;
 
         track.classList.toggle(
             'visible',
@@ -5639,10 +4989,9 @@ function setupEditorScrollIndicator(editor){
         const thumbY=
             m.maxScroll>0
                 ? (
-                    editor.scrollTop
-                    /m.maxScroll
-                )
-                *m.maxThumbTravel
+                    editor.scrollTop/
+                    m.maxScroll
+                )*m.maxThumbTravel
                 : 0;
 
         track.style.top=
@@ -5664,9 +5013,7 @@ function setupEditorScrollIndicator(editor){
         }
 
         raf=
-            requestAnimationFrame(
-                update
-            );
+            requestAnimationFrame(update);
     };
 
     editor.addEventListener(
@@ -5692,12 +5039,11 @@ function setupEditorScrollIndicator(editor){
     );
 
     if(window.visualViewport){
-        window.visualViewport
-            .addEventListener(
-                'resize',
-                scheduleUpdate,
-                {passive:true}
-            );
+        window.visualViewport.addEventListener(
+            'resize',
+            scheduleUpdate,
+            {passive:true}
+        );
     }
 
     if('ResizeObserver' in window){
@@ -5720,31 +5066,22 @@ function setupEditorScrollIndicator(editor){
     track.addEventListener(
         'pointerdown',
         event=>{
-            if(
-                !track.classList.contains(
-                    'visible'
-                )
-            ){
+            if(!track.classList.contains('visible')){
                 return;
             }
 
             event.preventDefault();
 
             const m=metrics();
-
-            const rect=
-                track.getBoundingClientRect();
+            const rect=track.getBoundingClientRect();
 
             if(event.target===thumb){
                 drag={
                     pointerId:event.pointerId,
                     startY:event.clientY,
-                    startScrollTop:
-                        editor.scrollTop,
-                    maxScroll:
-                        m.maxScroll,
-                    maxThumbTravel:
-                        m.maxThumbTravel
+                    startScrollTop:editor.scrollTop,
+                    maxScroll:m.maxScroll,
+                    maxThumbTravel:m.maxThumbTravel
                 };
 
                 thumb.setPointerCapture?.(
@@ -5755,8 +5092,8 @@ function setupEditorScrollIndicator(editor){
             }
 
             if(
-                m.maxThumbTravel<=0
-                ||m.maxScroll<=0
+                m.maxThumbTravel<=0||
+                m.maxScroll<=0
             ){
                 return;
             }
@@ -5766,18 +5103,17 @@ function setupEditorScrollIndicator(editor){
                     0,
                     Math.min(
                         m.maxThumbTravel,
-                        event.clientY
-                        -rect.top
-                        -m.thumbHeight/2
+                        event.clientY-
+                        rect.top-
+                        m.thumbHeight/2
                     )
                 );
 
             editor.scrollTop=
                 (
-                    y
-                    /m.maxThumbTravel
-                )
-                *m.maxScroll;
+                    y/
+                    m.maxThumbTravel
+                )*m.maxScroll;
 
             scheduleUpdate();
         }
@@ -5787,9 +5123,8 @@ function setupEditorScrollIndicator(editor){
         'pointermove',
         event=>{
             if(
-                !drag
-                ||event.pointerId
-                    !==drag.pointerId
+                !drag||
+                event.pointerId!==drag.pointerId
             ){
                 return;
             }
@@ -5797,23 +5132,22 @@ function setupEditorScrollIndicator(editor){
             event.preventDefault();
 
             if(
-                drag.maxThumbTravel<=0
-                ||drag.maxScroll<=0
+                drag.maxThumbTravel<=0||
+                drag.maxScroll<=0
             ){
                 return;
             }
 
             const deltaY=
-                event.clientY
-                -drag.startY;
+                event.clientY-
+                drag.startY;
 
             editor.scrollTop=
-                drag.startScrollTop
-                +(
-                    deltaY
-                    /drag.maxThumbTravel
-                )
-                *drag.maxScroll;
+                drag.startScrollTop+
+                (
+                    deltaY/
+                    drag.maxThumbTravel
+                )*drag.maxScroll;
 
             scheduleUpdate();
         }
@@ -5821,9 +5155,8 @@ function setupEditorScrollIndicator(editor){
 
     const endDrag=event=>{
         if(
-            !drag
-            ||event.pointerId
-                !==drag.pointerId
+            !drag||
+            event.pointerId!==drag.pointerId
         ){
             return;
         }
@@ -5845,20 +5178,13 @@ function setupEditorScrollIndicator(editor){
 }
 
 function setupRichEditor(editor){
-    setupEditorScrollIndicator(
-        editor
-    );
+    setupEditorScrollIndicator(editor);
 
     editor.addEventListener(
         'input',
         event=>{
-            if(
-                event.inputType
-                ==='insertParagraph'
-            ){
-                normalizeEditorParagraphModelPreservingSelection(
-                    editor
-                );
+            if(event.inputType==='insertParagraph'){
+                normalizeEditorParagraphModelPreservingSelection(editor);
             }
         }
     );
@@ -5870,16 +5196,12 @@ function setupRichEditor(editor){
 
             const plain=
                 event.clipboardData
-                    ?.getData(
-                        'text/plain'
-                    )
+                    ?.getData('text/plain')
                 ||'';
 
             const html=
                 event.clipboardData
-                    ?.getData(
-                        'text/html'
-                    )
+                    ?.getData('text/html')
                 ||'';
 
             const text=
@@ -5894,43 +5216,27 @@ function setupRichEditor(editor){
                 text
             );
 
-            normalizeEditorParagraphModelPreservingSelection(
-                editor
-            );
+            normalizeEditorParagraphModelPreservingSelection(editor);
         }
     );
 }
 
-setupRichEditor(
-    contentInput
-);
-
-setupRichEditor(
-    editContent
-);
+setupRichEditor(contentInput);
+setupRichEditor(editContent);
 
 /* =========================
    Memo 增删改
    ========================= */
 
 async function addEntry(){
-    if(
-        !unlocked
-        ||addBtn.disabled
-    ){
+    if(!unlocked||addBtn.disabled){
         return;
     }
 
     const initialContent=
-        getEditorHtml(
-            contentInput
-        );
+        getEditorHtml(contentInput);
 
-    if(
-        !hasMeaningfulContent(
-            initialContent
-        )
-    ){
+    if(!hasMeaningfulContent(initialContent)){
         show(
             '请输入正文',
             'error'
@@ -5947,14 +5253,8 @@ async function addEntry(){
 
     try{
         const content=
-            getEditorHtml(
-                contentInput
-            );
+            getEditorHtml(contentInput);
 
-        /*
-        发布日期仅在首次新增时产生。
-        后续编辑 saveEdit() 不修改 createdAt。
-        */
         state.push({
             id,
             attachmentFolder:null,
@@ -5962,14 +5262,10 @@ async function addEntry(){
             source:'',
             content,
             contentFormat:'html',
-            createdAt:
-                new Date()
-                    .toISOString()
+            createdAt:new Date().toISOString()
         });
 
-        await persistWorkingCopyNow(
-            state
-        );
+        await persistWorkingCopyNow(state);
 
         await clearAddDraft();
 
@@ -6000,9 +5296,7 @@ async function addEntry(){
 
 function editSnapshot(){
     return JSON.stringify({
-        content:getEditorHtml(
-            editContent
-        )
+        content:getEditorHtml(editContent)
     });
 }
 
@@ -6017,9 +5311,7 @@ function closeEditModal(clearDraft=true){
     editInitialSnapshot='';
     editOverlayPointer=null;
 
-    editModal.classList.add(
-        'hidden'
-    );
+    editModal.classList.add('hidden');
 }
 
 function openEdit(id){
@@ -6028,9 +5320,7 @@ function openEdit(id){
     }
 
     const item=
-        state.find(
-            x=>x.id===id
-        );
+        state.find(x=>x.id===id);
 
     if(!item){
         return;
@@ -6046,22 +5336,16 @@ function openEdit(id){
     editInitialSnapshot=
         editSnapshot();
 
-    editModal.classList.remove(
-        'hidden'
-    );
+    editModal.classList.remove('hidden');
 
     requestAnimationFrame(()=>{
         requestAnimationFrame(()=>{
             editContent.dispatchEvent(
-                new Event(
-                    'editor-scroll-refresh'
-                )
+                new Event('editor-scroll-refresh')
             );
 
             const dialogScroll=
-                editModal.querySelector(
-                    '.dialog-scroll'
-                );
+                editModal.querySelector('.dialog-scroll');
 
             if(dialogScroll){
                 dialogScroll.scrollTop=0;
@@ -6080,10 +5364,7 @@ function openEdit(id){
 }
 
 async function saveEdit(){
-    if(
-        !unlocked
-        ||editSave.disabled
-    ){
+    if(!unlocked||editSave.disabled){
         return;
     }
 
@@ -6097,15 +5378,9 @@ async function saveEdit(){
     }
 
     const initialContent=
-        getEditorHtml(
-            editContent
-        );
+        getEditorHtml(editContent);
 
-    if(
-        !hasMeaningfulContent(
-            initialContent
-        )
-    ){
+    if(!hasMeaningfulContent(initialContent)){
         show(
             '正文不能为空',
             'error'
@@ -6120,26 +5395,15 @@ async function saveEdit(){
 
     try{
         const content=
-            getEditorHtml(
-                editContent
-            );
+            getEditorHtml(editContent);
 
         item.title='';
         item.content=content;
         item.contentFormat='html';
 
-        /*
-        注意：
-        这里故意不修改 item.createdAt。
-        因此编辑正文不会改变发布日期，
-        也不会改变按发布时间排序的位置。
-        */
-
         stopEditDraftAutosave();
 
-        await persistWorkingCopyNow(
-            state
-        );
+        await persistWorkingCopyNow(state);
 
         await clearEditDraft();
 
@@ -6155,10 +5419,8 @@ async function saveEdit(){
         console.error(error);
 
         if(
-            !editModal.classList.contains(
-                'hidden'
-            )
-            &&editingId
+            !editModal.classList.contains('hidden')&&
+            editingId
         ){
             startEditDraftAutosave();
         }
@@ -6178,27 +5440,17 @@ async function deleteEntry(id){
     }
 
     const item=
-        state.find(
-            x=>x.id===id
-        );
+        state.find(x=>x.id===id);
 
     if(!item){
         return false;
     }
 
-    if(
-        !confirm(
-            '确定删除这条 Memo 吗？'
-        )
-    ){
+    if(!confirm('确定删除这条 Memo 吗？')){
         return false;
     }
 
     try{
-        /*
-        兼容旧 Memo 中可能存在的附件目录。
-        新版已经没有图片上传入口。
-        */
         await deleteAttachmentFolder(
             item.attachmentFolder
         );
@@ -6208,9 +5460,7 @@ async function deleteEntry(id){
                 x=>x.id!==id
             );
 
-        await persistWorkingCopyNow(
-            state
-        );
+        await persistWorkingCopyNow(state);
 
         markLocalChange();
 
@@ -6236,29 +5486,20 @@ async function deleteEntry(id){
    导入导出
    ========================= */
 
-const BACKUP_FORMAT=
-    'memo-html-backup';
-
-const BACKUP_DATA_ID=
-    'memo-backup-data';
-
-const EXPORT_SITE_NAME=
-    'memo';
+const BACKUP_FORMAT='memo-html-backup';
+const BACKUP_DATA_ID='memo-backup-data';
+const EXPORT_SITE_NAME='memo';
 
 function exportUnixTimestamp(){
     const timestamp=
-        Math.floor(
-            Date.now()/1000
-        );
+        Math.floor(Date.now()/1000);
 
     if(
-        !Number.isSafeInteger(timestamp)
-        ||timestamp<UNIX_FOLDER_MIN
-        ||timestamp>UNIX_FOLDER_MAX
+        !Number.isSafeInteger(timestamp)||
+        timestamp<UNIX_FOLDER_MIN||
+        timestamp>UNIX_FOLDER_MAX
     ){
-        throw new Error(
-            '当前时间无法生成 10 位 Unix 导出时间戳'
-        );
+        throw new Error('当前时间无法生成 10 位 Unix 导出时间戳');
     }
 
     return String(timestamp);
@@ -6276,37 +5517,22 @@ function backupJsonForHtml(payload){
 }
 
 function buildBackupHtml(payload){
-    const exportedAt=
-        payload.exportedAt;
-
-    const exportedUnix=
-        payload.exportedAtUnix;
-
-    const entries=
-        normalizeState(
-            payload.entries
-        );
+    const exportedAt=payload.exportedAt;
+    const exportedUnix=payload.exportedAtUnix;
+    const entries=normalizeState(payload.entries);
 
     const memoHtml=
         entries.length
             ? entries.map(item=>`
                 <article class="backup-memo">
                     <div class="backup-content">${
-                        renderMarkdownLinks(
-                            item.content
-                        )
+                        renderMarkdownLinks(item.content)
                     }</div>
 
                     <dl class="backup-meta">
                         <div>
                             <dt>发布日期</dt>
-                            <dd>${
-                                esc(
-                                    formatDate(
-                                        item.createdAt
-                                    )
-                                )
-                            }</dd>
+                            <dd>${esc(formatDate(item.createdAt))}</dd>
                         </div>
 
                         ${
@@ -6329,12 +5555,11 @@ function buildBackupHtml(payload){
         });
 
     const backupScript=
-        '<script id="'
-        +BACKUP_DATA_ID
-        +'" type="application/json" data-memo-backup="true">'
-        +backupData
-        +'</scr'
-        +'ipt>';
+        '<script id="'+
+        BACKUP_DATA_ID+
+        '" type="application/json" data-memo-backup="true">'+
+        backupData+
+        '</scr'+'ipt>';
 
     return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -6472,66 +5697,48 @@ ${backupScript}
 }
 
 function downloadHtmlBackup(){
-    if(
-        !publicLoaded
-        &&!state.length
-    ){
+    if(!publicLoaded&&!state.length){
         return;
     }
 
     try{
         const exportedAt=
-            new Date()
-                .toISOString();
+            new Date().toISOString();
 
         const exportedAtUnix=
             exportUnixTimestamp();
 
         const payload={
-            backupFormat:
-                BACKUP_FORMAT,
-
+            backupFormat:BACKUP_FORMAT,
             schemaVersion:5,
-
             exportedAt,
-
             exportedAtUnix,
-
-            entries:
-                normalizeState(state)
+            entries:normalizeState(state)
         };
 
         const html=
-            buildBackupHtml(
-                payload
-            );
+            buildBackupHtml(payload);
 
         const blob=
             new Blob(
                 [html],
                 {
-                    type:
-                        'text/html;charset=utf-8'
+                    type:'text/html;charset=utf-8'
                 }
             );
 
         const url=
-            URL.createObjectURL(
-                blob
-            );
+            URL.createObjectURL(blob);
 
         const a=
-            document.createElement(
-                'a'
-            );
+            document.createElement('a');
 
         a.href=url;
 
         a.download=
             `${EXPORT_SITE_NAME}${exportedAtUnix}.html`;
 
-        document.body
-            .appendChild(a);
+        document.body.appendChild(a);
 
         a.click();
         a.remove();
@@ -6557,27 +5764,14 @@ function parseImportedBackup(raw,file){
             .trim();
 
     if(!text){
-        throw new Error(
-            '文件为空'
-        );
+        throw new Error('文件为空');
     }
 
     const htmlLike=
-        /\.html?$/i.test(
-            file?.name||''
-        )
-        ||/text\/html/i.test(
-            file?.type||''
-        )
-        ||/^<!doctype\s+html/i.test(
-            text
-        )
-        ||/<html[\s>]/i.test(
-            text.slice(
-                0,
-                1000
-            )
-        );
+        /\.html?$/i.test(file?.name||'')||
+        /text\/html/i.test(file?.type||'')||
+        /^<!doctype\s+html/i.test(text)||
+        /<html[\s>]/i.test(text.slice(0,1000));
 
     if(!htmlLike){
         return normalizeState(
@@ -6593,53 +5787,37 @@ function parseImportedBackup(raw,file){
             );
 
     const dataNode=
-        doc.getElementById(
-            BACKUP_DATA_ID
-        )
-        ||doc.querySelector(
+        doc.getElementById(BACKUP_DATA_ID)||
+        doc.querySelector(
             'script[data-memo-backup="true"][type="application/json"]'
         );
 
     if(!dataNode){
-        throw new Error(
-            '该 HTML 中未找到 Memo 恢复数据'
-        );
+        throw new Error('该 HTML 中未找到 Memo 恢复数据');
     }
 
     const payload=
-        JSON.parse(
-            dataNode.textContent||''
-        );
+        JSON.parse(dataNode.textContent||'');
 
     if(
-        payload?.backupFormat
-        &&payload.backupFormat
-            !==BACKUP_FORMAT
+        payload?.backupFormat&&
+        payload.backupFormat!==BACKUP_FORMAT
     ){
-        throw new Error(
-            '不支持的 Memo HTML 备份格式'
-        );
+        throw new Error('不支持的 Memo HTML 备份格式');
     }
 
     if(
-        !Array.isArray(payload)
-        &&!Array.isArray(
-            payload?.entries
-        )
+        !Array.isArray(payload)&&
+        !Array.isArray(payload?.entries)
     ){
-        throw new Error(
-            'Memo 恢复数据格式无效'
-        );
+        throw new Error('Memo 恢复数据格式无效');
     }
 
     return normalizeState(payload);
 }
 
 function importFile(file){
-    if(
-        !unlocked
-        ||!file
-    ){
+    if(!unlocked||!file){
         return;
     }
 
@@ -6707,34 +5885,20 @@ function importFile(file){
    ========================= */
 
 function openConfig(){
-    cfgOwner.value=
-        config.owner;
-
-    cfgRepo.value=
-        config.repo;
-
-    cfgFile.value=
-        config.file
-        ||'memo_data.json';
-
-    cfgToken.value=
-        config.token;
+    cfgOwner.value=config.owner;
+    cfgRepo.value=config.repo;
+    cfgFile.value=config.file||'memo_data.json';
+    cfgToken.value=config.token;
 
     rememberToken.checked=
-        Boolean(
-            appGet(TOKEN_KEY)
-        );
+        Boolean(appGet(TOKEN_KEY));
 
     updateVisibleViewportHeight();
 
-    configModal.classList.remove(
-        'hidden'
-    );
+    configModal.classList.remove('hidden');
 
     const scrollBody=
-        configForm.querySelector(
-            '.dialog-scroll'
-        );
+        configForm.querySelector('.dialog-scroll');
 
     if(scrollBody){
         scrollBody.scrollTop=0;
@@ -6744,32 +5908,12 @@ function openConfig(){
 async function submitConfig(event){
     event.preventDefault();
 
-    const owner=
-        clean(
-            cfgOwner.value
-        );
+    const owner=clean(cfgOwner.value);
+    const repo=clean(cfgRepo.value);
+    const file=clean(cfgFile.value)||'memo_data.json';
+    const token=clean(cfgToken.value);
 
-    const repo=
-        clean(
-            cfgRepo.value
-        );
-
-    const file=
-        clean(
-            cfgFile.value
-        )
-        ||'memo_data.json';
-
-    const token=
-        clean(
-            cfgToken.value
-        );
-
-    if(
-        !owner
-        ||!repo
-        ||!token
-    ){
+    if(!owner||!repo||!token){
         show(
             '请完整填写仓库和 Token',
             'error'
@@ -6778,8 +5922,7 @@ async function submitConfig(event){
         return;
     }
 
-    const oldTarget=
-        target();
+    const oldTarget=target();
 
     config={
         owner,
@@ -6799,10 +5942,7 @@ async function submitConfig(event){
         return;
     }
 
-    if(
-        oldTarget
-        &&oldTarget!==target()
-    ){
+    if(oldTarget&&oldTarget!==target()){
         meta={
             target:'',
             fingerprint:null,
@@ -6813,9 +5953,7 @@ async function submitConfig(event){
         await saveMeta();
     }
 
-    configModal.classList.add(
-        'hidden'
-    );
+    configModal.classList.add('hidden');
 
     await login(true);
 }
@@ -6833,10 +5971,10 @@ contentInput.addEventListener(
     'keydown',
     event=>{
         if(
-            event.key==='Enter'
-            &&(
-                event.ctrlKey
-                ||event.metaKey
+            event.key==='Enter'&&
+            (
+                event.ctrlKey||
+                event.metaKey
             )
         ){
             event.preventDefault();
@@ -6849,9 +5987,7 @@ memoList.addEventListener(
     'click',
     event=>{
         const edit=
-            event.target.closest(
-                '.edit-btn'
-            );
+            event.target.closest('.edit-btn');
 
         if(edit){
             return openEdit(
@@ -6864,21 +6000,14 @@ memoList.addEventListener(
 editDelete.addEventListener(
     'click',
     async()=>{
-        if(
-            !editingId
-            ||editDelete.disabled
-        ){
+        if(!editingId||editDelete.disabled){
             return;
         }
 
         editDelete.disabled=true;
 
         try{
-            if(
-                await deleteEntry(
-                    editingId
-                )
-            ){
+            if(await deleteEntry(editingId)){
                 stopEditDraftAutosave();
 
                 await clearEditDraft();
@@ -6909,12 +6038,8 @@ editModal.addEventListener(
         }
 
         editOverlayPointer={
-            pointerId:
-                event.pointerId,
-
-            startedOutside:
-                event.target
-                ===editModal
+            pointerId:event.pointerId,
+            startedOutside:event.target===editModal
         };
     }
 );
@@ -6923,19 +6048,17 @@ editModal.addEventListener(
     'pointerup',
     event=>{
         if(
-            !editingId
-            ||!editOverlayPointer
-            ||event.pointerId
-                !==editOverlayPointer.pointerId
+            !editingId||
+            !editOverlayPointer||
+            event.pointerId!==editOverlayPointer.pointerId
         ){
             return;
         }
 
         const shouldClose=
-            editOverlayPointer.startedOutside
-            &&event.target===editModal
-            &&editSnapshot()
-                ===editInitialSnapshot;
+            editOverlayPointer.startedOutside&&
+            event.target===editModal&&
+            editSnapshot()===editInitialSnapshot;
 
         editOverlayPointer=null;
 
@@ -6956,10 +6079,10 @@ editContent.addEventListener(
     'keydown',
     event=>{
         if(
-            event.key==='Enter'
-            &&(
-                event.ctrlKey
-                ||event.metaKey
+            event.key==='Enter'&&
+            (
+                event.ctrlKey||
+                event.metaKey
             )
         ){
             event.preventDefault();
@@ -6981,10 +6104,7 @@ editContent.addEventListener(
 document.addEventListener(
     'visibilitychange',
     ()=>{
-        if(
-            document.visibilityState
-            ==='hidden'
-        ){
+        if(document.visibilityState==='hidden'){
             saveAddDraftLocal(true);
             saveEditDraftLocal(true);
         }
@@ -7012,9 +6132,7 @@ lockedConfigBtn.addEventListener(
 configCancel.addEventListener(
     'click',
     ()=>{
-        configModal.classList.add(
-            'hidden'
-        );
+        configModal.classList.add('hidden');
     }
 );
 
@@ -7058,9 +6176,7 @@ document.addEventListener(
 
         closeEditModal();
 
-        configModal.classList.add(
-            'hidden'
-        );
+        configModal.classList.add('hidden');
     }
 );
 
@@ -7076,23 +6192,19 @@ function updateBackToTopVisibility(){
 }
 
 function fastScrollToTop(){
-    const startY=
-        window.scrollY;
+    const startY=window.scrollY;
 
     if(startY<=0){
         return;
     }
 
     const duration=10;
-
-    const startTime=
-        performance.now();
+    const startTime=performance.now();
 
     function step(now){
         const progress=
             Math.min(
-                (now-startTime)
-                /duration,
+                (now-startTime)/duration,
                 1
             );
 
@@ -7105,21 +6217,16 @@ function fastScrollToTop(){
         window.scrollTo(
             0,
             Math.round(
-                startY
-                *(1-eased)
+                startY*(1-eased)
             )
         );
 
         if(progress<1){
-            requestAnimationFrame(
-                step
-            );
+            requestAnimationFrame(step);
         }
     }
 
-    requestAnimationFrame(
-        step
-    );
+    requestAnimationFrame(step);
 }
 
 backToTopBtn.addEventListener(

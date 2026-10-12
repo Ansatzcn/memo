@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="app-build" content="2026-09-27-memo-v13">
+<meta name="app-build" content="2026-10-13-memo-v14-ime-date">
 <meta name="memo-data-file" content="memo_data.json">
 <title>Memo</title>
 <style>
@@ -306,20 +306,18 @@ button{cursor:pointer}
     border-radius:20px;
     background:#fff;
     overflow:visible;
+    display:flex;
+    align-items:flex-end;
+    gap:.8rem;
     transition:background .15s;
-}
-.memo-item::after{
-    content:"";
-    display:block;
-    clear:both;
 }
 .memo-item > *{max-width:100%}
 .memo-item:hover{background:#fafcff}
 
 .memo-content{
-    clear:both;
+    flex:1 1 auto;
     min-width:0;
-    padding-right:3.1rem;
+    padding-right:0;
     overflow-wrap:anywhere;
     word-break:break-word;
     color:#0f172a;
@@ -394,23 +392,28 @@ button{cursor:pointer}
     font-weight:700;
 }
 
+.memo-content > :last-child{margin-bottom:0}
 .memo-footer{
     display:flex;
+    flex:0 0 auto;
     align-items:flex-end;
     justify-content:flex-end;
-    gap:12px;
-    width:100%;
-    margin-top:.65rem;
+    align-self:flex-end;
+    width:auto;
+    min-height:1.68rem;
+    padding-bottom:.13rem;
+    white-space:nowrap;
 }
 .publish-date{
     color:#94a3b8;
     font-size:.8rem;
+    line-height:1.68;
 }
-.memo-edit-top{
-    position:absolute;
-    top:1rem;
-    right:1rem;
-    z-index:2;
+/* 日期与原编辑按钮是同一个交互控件，保持 data-id 与点击事件。 */
+.memo-footer .edit-btn{
+    color:#64748b;
+    font-size:.8rem;
+    line-height:1.68;
 }
 .inline-note{
     color:#64748b;
@@ -713,8 +716,10 @@ button{cursor:pointer}
         right:3px;
         width:6px;
     }
-    .memo-item{padding:1.05rem 1rem 1.2rem}
+    .memo-item{padding:1.05rem 1rem 1.2rem;gap:.45rem}
     .memo-content{font-size:1rem}
+    .memo-footer .publish-date,
+    .memo-footer .edit-btn{font-size:.75rem}
     .dialog{
         width:100%;
         border-radius:20px;
@@ -1137,6 +1142,7 @@ let workingCopyOpfsRecord=null;
 let workingCopyOpfsWriteChain=Promise.resolve();
 
 const savedEditorRanges=new WeakMap();
+const composingEditors=new WeakSet();
 
 /* =========================
    移动端可见视口
@@ -1613,7 +1619,7 @@ function hasMeaningfulContent(value){
 }
 
 function getEditorHtml(editor){
-    normalizeEditorParagraphModelPreservingSelection(editor);
+    // 自动保存、检查变化与提交只读取编辑器；不能修改输入法正在组合的 DOM。
     return sanitizeHtml(editor.innerHTML);
 }
 
@@ -2644,7 +2650,7 @@ async function buildEditDraftRecord(){
 }
 
 async function saveAddDraftLocal(force=false){
-    if(!unlocked){
+    if(!unlocked||composingEditors.has(contentInput)){
         return false;
     }
 
@@ -2684,6 +2690,7 @@ async function saveAddDraftLocal(force=false){
 
 async function saveEditDraftLocal(force=false){
     if(
+        composingEditors.has(editContent)||
         editModal.classList.contains('hidden')||
         !editingId
     ){
@@ -3371,24 +3378,21 @@ function render(){
                 class="memo-item"
                 data-id="${attr(item.id)}"
             >
-                ${
-                    unlocked
-                        ? `<button
-                            class="action-btn edit-btn memo-edit-top"
-                            data-id="${attr(item.id)}"
-                            type="button"
-                        >编辑</button>`
-                        : ''
-                }
-
                 <div class="memo-content">${
                     renderMarkdownLinks(item.content)
                 }</div>
 
                 <div class="memo-footer">
-                    <div class="publish-date">
-                        发布日期 ${esc(formatDate(item.createdAt))}
-                    </div>
+                    ${unlocked
+                        ? `<button
+                            class="action-btn edit-btn publish-date"
+                            data-id="${attr(item.id)}"
+                            type="button"
+                            aria-label="编辑 ${attr(formatDate(item.createdAt))} 发布的 Memo"
+                            title="编辑这条 Memo"
+                        >发布日期${esc(formatDate(item.createdAt))}</button>`
+                        : `<span class="publish-date">发布日期${esc(formatDate(item.createdAt))}</span>`
+                    }
                 </div>
             </article>
         `).join('');
@@ -5180,18 +5184,26 @@ function setupEditorScrollIndicator(editor){
 function setupRichEditor(editor){
     setupEditorScrollIndicator(editor);
 
-    editor.addEventListener(
-        'input',
-        event=>{
-            if(event.inputType==='insertParagraph'){
-                normalizeEditorParagraphModelPreservingSelection(editor);
-            }
+    // 输入法组合期间，不能移动光标、替换节点或重建段落。
+    editor.addEventListener('compositionstart',()=>{
+        composingEditors.add(editor);
+    });
+    editor.addEventListener('compositionend',()=>{
+        composingEditors.delete(editor);
+        if(editor===contentInput){
+            markAddDraftChanged();
+        }else if(editor===editContent){
+            markEditDraftChanged();
         }
-    );
+    });
 
+    // 浏览器原生回车已能创建段落；避免 input 事件内改写正在输入的内容。
     editor.addEventListener(
         'paste',
         event=>{
+            if(composingEditors.has(editor)||event.isComposing){
+                return;
+            }
             event.preventDefault();
 
             const plain=
@@ -5971,11 +5983,10 @@ contentInput.addEventListener(
     'keydown',
     event=>{
         if(
+            !event.isComposing&&
+            !composingEditors.has(contentInput)&&
             event.key==='Enter'&&
-            (
-                event.ctrlKey||
-                event.metaKey
-            )
+            (event.ctrlKey||event.metaKey)
         ){
             event.preventDefault();
             addEntry();
@@ -6079,11 +6090,10 @@ editContent.addEventListener(
     'keydown',
     event=>{
         if(
+            !event.isComposing&&
+            !composingEditors.has(editContent)&&
             event.key==='Enter'&&
-            (
-                event.ctrlKey||
-                event.metaKey
-            )
+            (event.ctrlKey||event.metaKey)
         ){
             event.preventDefault();
             saveEdit();

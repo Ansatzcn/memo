@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="app-build" content="2026-10-13-memo-v14-ime-date">
+<meta name="app-build" content="2026-10-13-memo-v15-ime-title-fix">
 <meta name="memo-data-file" content="memo_data.json">
 <title>Memo</title>
 <style>
@@ -326,8 +326,14 @@ button{cursor:pointer}
     line-height:1.68;
 }
 
-.rich-editor > :first-child,
-.memo-content > :first-child{
+/* 不能用 :first-child 标记标题：它会忽略开头的文本节点，误把第二段设为标题。 */
+.rich-editor::first-line{
+    color:#1E40AF;
+    font-size:1.05rem;
+    font-weight:600;
+    line-height:1.45;
+}
+.memo-content > .memo-lead{
     margin-bottom:.45rem;
     color:#1E40AF;
     font-size:1.05rem;
@@ -3352,6 +3358,40 @@ async function deleteAttachmentFolder(folder){
    渲染
    ========================= */
 
+function renderMemoContent(value){
+    // 只整理临时展示 DOM，绝不修改编辑器或已保存的原文。
+    // 兼容正文以文本节点、<br>、<span>、<div>、<p> 等形式开头的旧 Memo。
+    const view=document.createElement('div');
+    view.innerHTML=renderMarkdownLinks(value);
+
+    // 顶层纯排版空白不能变成额外的空段落。
+    for(const node of [...view.childNodes]){
+        if(
+            node.nodeType===Node.TEXT_NODE&&
+            !node.textContent.trim()&&
+            /[\r\n]/.test(node.textContent)
+        ){
+            node.remove();
+        }
+    }
+
+    normalizeEditorParagraphModel(view);
+
+    // 第一段真实内容才享受标题样式，不再依赖 :first-child。
+    for(const child of view.children){
+        if(
+            child.textContent.trim()||
+            child.querySelector('img,table,hr')||
+            ['IMG','TABLE','HR'].includes(child.tagName)
+        ){
+            child.classList.add('memo-lead');
+            break;
+        }
+    }
+
+    return view.innerHTML;
+}
+
 function render(){
     state=normalizeState(state);
 
@@ -3379,7 +3419,7 @@ function render(){
                 data-id="${attr(item.id)}"
             >
                 <div class="memo-content">${
-                    renderMarkdownLinks(item.content)
+                    renderMemoContent(item.content)
                 }</div>
 
                 <div class="memo-footer">

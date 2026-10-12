@@ -3390,8 +3390,8 @@ function render(){
                             type="button"
                             aria-label="编辑 ${attr(formatDate(item.createdAt))} 发布的 Memo"
                             title="编辑这条 Memo"
-                        >发布日期${esc(formatDate(item.createdAt))}</button>`
-                        : `<span class="publish-date">发布日期${esc(formatDate(item.createdAt))}</span>`
+                        >${esc(formatDate(item.createdAt))}</button>`
+                        : `<span class="publish-date">${esc(formatDate(item.createdAt))}</span>`
                     }
                 </div>
             </article>
@@ -5543,7 +5543,7 @@ function buildBackupHtml(payload){
 
                     <dl class="backup-meta">
                         <div>
-                            <dt>发布日期</dt>
+                            <dt></dt>
                             <dd>${esc(formatDate(item.createdAt))}</dd>
                         </div>
 
